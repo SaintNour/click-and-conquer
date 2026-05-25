@@ -1,0 +1,5 @@
+export * from './compute'
+export { updateNarrator } from './gameLogic'
+export { resolveNarratorLine, setNarratorFromKey } from './narrator'
+export { loadGame, saveGame } from './save'
+export { useGame } from './useGame'
