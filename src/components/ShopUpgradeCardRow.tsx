@@ -12,6 +12,15 @@ import { animateShopCardPress } from '../animations'
 export const SHOP_BULK_QTY = [1, 10, 100, 'max'] as const
 export type ShopBulkQty = (typeof SHOP_BULK_QTY)[number]
 
+/** Visual rank tier from an item's level — drives icon aura + badge color. */
+function levelTier(level: number): 0 | 1 | 2 | 3 | 4 {
+  if (level >= 100) return 4
+  if (level >= 50) return 3
+  if (level >= 25) return 2
+  if (level >= 10) return 1
+  return 0
+}
+
 type Props = {
   id: string
   cardRef: (el: HTMLLIElement | null) => void
@@ -57,7 +66,11 @@ export function ShopUpgradeCardRow({
 }: Props) {
   const rowRef = useRef<HTMLLIElement | null>(null)
   const [hovered, setHovered] = useState(false)
+  // Level at mount — a burst renders whenever the live level climbs above it.
+  const [mountLevel] = useState(level)
+  const leveledUp = level > mountLevel
   const canAffordSelection = showBulk && money >= bulkTotal(selectedQty)
+  const tier = levelTier(level)
 
   const setRefs = useCallback(
     (el: HTMLLIElement | null) => {
@@ -145,13 +158,28 @@ export function ShopUpgradeCardRow({
       onClick={onCardClick}
       onKeyDown={onCardKeyDown}
     >
-      <div className="shop-card-row__icon" aria-hidden>
+      <div className={`shop-card-row__icon shop-card-row__icon--t${tier}`} aria-hidden>
         {icon}
+        {leveledUp ? (
+          <span key={`burst-${level}`} className="shop-card-row__burst">
+            <i />
+            <i />
+            <i />
+            <i />
+            <i />
+            <i />
+          </span>
+        ) : null}
       </div>
       <div className="shop-card-row__main">
         <div className="shop-card-row__title">{title}</div>
         <div className="shop-card-row__purpose">{description}</div>
-        <div className="shop-card-row__meta">Level {level}</div>
+        <span
+          key={`lv-${level}`}
+          className={`shop-card-row__level shop-card-row__level--t${tier}`}
+        >
+          Lv {level}
+        </span>
         {lockMessages}
       </div>
       <div className="shop-card-row__buyCol">
