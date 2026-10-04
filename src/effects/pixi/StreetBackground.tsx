@@ -98,7 +98,14 @@ export function StreetBackground({ state, empireVisualKey }: Props) {
         const a = appRef.current
         const L = layersRef.current
         if (!a || !L) return
-        tickEmpire(runtime, a, L, app.ticker.deltaMS, stateRef.current.power)
+        tickEmpire(
+          runtime,
+          a,
+          L,
+          app.ticker.deltaMS,
+          stateRef.current.power,
+          stateRef.current.heat,
+        )
       })
 
       const onVis = () => {

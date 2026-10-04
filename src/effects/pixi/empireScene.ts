@@ -37,24 +37,44 @@ const C = {
   gold: 0xeab308,
   moneyGreen: 0x34d399,
   powerPurple: 0xc084fc,
+  moon: 0xfff7d6,
+  headlight: 0xfff9c2,
+  taillight: 0xff5470,
+  ember: 0xffb35c,
+  strobeRed: 0xef4444,
+  strobeBlue: 0x3b82f6,
 }
 
 export type EmpireLayers = {
   sky: Graphics
   skyBloom: Graphics
+  /** Moon disc + halo */
+  moon: Graphics
   stars: Graphics
   farSkyline: Container
   midSkyline: Container
+  /** Rotating searchlight beams over the skyline */
+  searchlights: Container
+  /** Twinkling window specks on skyline towers */
+  twinkles: Container
   fog: Graphics
   fogFront: Graphics
   /** Slow scrolling smoke / haze quads */
   hazeSmoke: Graphics
+  /** Second smog bank drifting the other way */
+  smog2: Graphics
   midDistrict: Container
   road: Graphics
   roadSheen: Graphics
   buildings: Container
   units: Container
   vehicles: Container
+  /** Fast headlight / taillight streaks on the road */
+  trails: Container
+  /** Warm rising sparks */
+  embers: Container
+  /** Police strobe wash when heat runs hot */
+  strobe: Container
   particles: Container
   particlesNear: Container
   territoryGlow: Graphics
@@ -93,6 +113,9 @@ type VehicleAnim = {
   w: number
   dir: number
   kind: 'street' | 'patrol'
+  /** patrol light bars (alternating strobe) */
+  lightL?: Graphics
+  lightR?: Graphics
 }
 
 type ParticleAnim = {
@@ -117,11 +140,30 @@ type BuildingAnim = {
   groundGlow?: Graphics
 }
 
+type TwinkleAnim = {
+  g: Graphics
+  phase: number
+  speed: number
+  base: number
+}
+
+type BeamAnim = {
+  g: Graphics
+  /** -1 = sweeps left, 1 = sweeps right */
+  dir: number
+  phase: number
+  speed: number
+}
+
 export type EmpireRuntime = {
   units: UnitAnim[]
   vehicles: VehicleAnim[]
   particles: ParticleAnim[]
   particlesNear: ParticleAnim[]
+  trails: ParticleAnim[]
+  embers: ParticleAnim[]
+  twinkles: TwinkleAnim[]
+  beams: BeamAnim[]
   buildings: BuildingAnim[]
   time: number
   /** 0–6 from total business + recruit levels — drives motion amplitude & density. */
@@ -136,6 +178,10 @@ export function createEmpireRuntime(): EmpireRuntime {
     vehicles: [],
     particles: [],
     particlesNear: [],
+    trails: [],
+    embers: [],
+    twinkles: [],
+    beams: [],
     buildings: [],
     time: 0,
     growthTier: 0,
@@ -293,6 +339,196 @@ function drawHazeSmoke(
     g.ellipse(cx + w * 0.42, y + 10, w * 0.26, 12).fill({ color: C.fogFront, alpha: a * 0.75 })
   }
   g.rect(0, horizonY - 8, w, 14).fill({ color: C.skyBot, alpha: 0.06 })
+}
+
+/** Second haze bank — drifts opposite the first for parallax depth. */
+function drawSmog2(
+  g: Graphics,
+  w: number,
+  _h: number,
+  horizonY: number,
+  groundY: number,
+): void {
+  g.clear()
+  const mid = horizonY + (groundY - horizonY) * 0.62
+  for (let i = 0; i < 4; i++) {
+    const seed = hash(i * 733 + 1409)
+    const y = mid + i * 26 + ((seed % 13) - 6)
+    const a = 0.03 + (i % 2) * 0.022
+    const cx = w * (0.2 + ((seed >>> 4) % 60) / 100)
+    g.ellipse(cx, y, w * (0.38 + (seed % 6) * 0.03), 13 + (seed % 7)).fill({
+      color: 0x4c3a6e,
+      alpha: a,
+    })
+    g.ellipse(cx - w * 0.38, y + 12, w * 0.24, 10).fill({ color: C.fogFront, alpha: a * 0.7 })
+  }
+}
+
+/** Moon disc with layered halo, upper-right sky. */
+function drawMoon(g: Graphics, w: number, h: number, growthTier: number): void {
+  g.clear()
+  const mx = w * 0.78
+  const my = h * 0.13
+  const r = 13 + Math.min(7, growthTier * 1.2)
+  g.circle(mx, my, r * 3.4).fill({ color: 0x9ca3af, alpha: 0.05 })
+  g.circle(mx, my, r * 2.1).fill({ color: C.moon, alpha: 0.07 })
+  g.circle(mx, my, r * 1.35).fill({ color: C.moon, alpha: 0.12 })
+  g.circle(mx, my, r).fill({ color: C.moon, alpha: 0.9 })
+  g.circle(mx - r * 0.3, my - r * 0.25, r * 0.78).fill({ color: 0xfffdf0, alpha: 0.55 })
+}
+
+/** Searchlight beams pivoting at the skyline. */
+function buildSearchlights(
+  parent: Container,
+  w: number,
+  horizonY: number,
+  tier: number,
+  runtime: EmpireRuntime,
+): void {
+  parent.removeChildren().forEach((c) => c.destroy({ children: true }))
+  runtime.beams = []
+  const n = 1 + Math.min(2, Math.floor(tier / 4))
+  for (let i = 0; i < n; i++) {
+    const seed = hash(i * 1543 + 9021)
+    const beam = new Graphics()
+    const len = 190 + (seed % 60)
+    beam.poly([0, 0, -7 - len * 0.09, -len, 7 + len * 0.09, -len], true).fill({
+      color: 0xc7d2fe,
+      alpha: 0.05,
+    })
+    beam.poly([0, 0, -3 - len * 0.045, -len, 3 + len * 0.045, -len], true).fill({
+      color: 0xeef2ff,
+      alpha: 0.06,
+    })
+    beam.x = w * (0.18 + ((seed >>> 5) % 60) / 100)
+    beam.y = horizonY - 6
+    parent.addChild(beam)
+    runtime.beams.push({
+      g: beam,
+      dir: i % 2 === 0 ? 1 : -1,
+      phase: (seed % 628) * 0.01,
+      speed: 0.00016 + (seed % 7) * 0.00002,
+    })
+  }
+}
+
+/** Tiny lit windows sprinkled over the mid skyline that flicker independently. */
+function buildTwinkles(
+  parent: Container,
+  w: number,
+  horizonY: number,
+  tier: number,
+  runtime: EmpireRuntime,
+): void {
+  parent.removeChildren().forEach((c) => c.destroy({ children: true }))
+  runtime.twinkles = []
+  const n = Math.min(64, 26 + tier * 4)
+  for (let i = 0; i < n; i++) {
+    const seed = hash(i * 2677 + 311)
+    const g = new Graphics()
+    const s = 1.1 + (seed % 3) * 0.6
+    const warm = seed % 4 !== 0
+    g.rect(-s / 2, -s / 2, s, s).fill({
+      color: warm ? 0xfde68a : 0xa5f3fc,
+      alpha: 0.5,
+    })
+    g.x = ((seed % 1000) / 1000) * w
+    g.y = horizonY - 14 - (((seed >>> 6) % 1000) / 1000) * (42 + tier * 10)
+    parent.addChild(g)
+    runtime.twinkles.push({
+      g,
+      phase: (seed % 628) * 0.01,
+      speed: 0.0006 + ((seed >>> 3) % 9) * 0.00014,
+      base: 0.25 + (seed % 5) * 0.09,
+    })
+  }
+}
+
+/** Headlight / taillight streaks sliding along the road. */
+function buildTrails(
+  parent: Container,
+  w: number,
+  _h: number,
+  groundY: number,
+  runtime: EmpireRuntime,
+): void {
+  parent.removeChildren().forEach((c) => c.destroy({ children: true }))
+  runtime.trails = []
+  const n = 10
+  for (let i = 0; i < n; i++) {
+    const seed = hash(i * 2081 + 733)
+    const head = i % 2 === 0
+    const g = new Graphics()
+    const len = 14 + (seed % 22)
+    g.roundRect(-len / 2, -1, len, 2, 1).fill({
+      color: head ? C.headlight : C.taillight,
+      alpha: 0.4,
+    })
+    if (head) {
+      g.circle(len / 2 + 2, 0, 2.4).fill({ color: C.headlight, alpha: 0.5 })
+    } else {
+      g.circle(-len / 2 - 2, 0, 2).fill({ color: C.taillight, alpha: 0.45 })
+    }
+    g.x = ((seed % 1000) / 1000) * w
+    g.y = groundY + 16 + (seed % 26)
+    parent.addChild(g)
+    runtime.trails.push({
+      g,
+      vx: (head ? 1 : -1) * (1.6 + (seed % 9) * 0.22),
+      vy: 0,
+      x: g.x,
+      y: g.y,
+      a: 0.4 + (seed % 4) * 0.08,
+    })
+  }
+}
+
+/** Warm embers drifting up from street level. */
+function buildEmbers(
+  parent: Container,
+  w: number,
+  h: number,
+  groundY: number,
+  growthTier: number,
+  runtime: EmpireRuntime,
+): void {
+  parent.removeChildren().forEach((c) => c.destroy({ children: true }))
+  runtime.embers = []
+  const n = Math.min(26, 7 + growthTier * 3)
+  for (let i = 0; i < n; i++) {
+    const seed = hash(i * 1289 + 449)
+    const g = new Graphics()
+    const s = 0.7 + (seed % 4) * 0.4
+    const hot = seed % 3 === 0
+    g.circle(0, 0, s).fill({
+      color: hot ? 0xffe29a : C.ember,
+      alpha: 0.5,
+    })
+    g.x = ((seed % 1000) / 1000) * w
+    g.y = groundY + 6 + (((seed >>> 7) % 1000) / 1000) * (h - groundY - 24)
+    parent.addChild(g)
+    runtime.embers.push({
+      g,
+      vx: (((seed % 7) - 3) * 0.06) / 2,
+      vy: -(0.18 + (seed % 6) * 0.045),
+      x: g.x,
+      y: g.y,
+      a: 0.4 + (seed % 4) * 0.1,
+    })
+  }
+}
+
+/** Police-strobe wash: two full-screen tint quads alternating in tick. */
+function buildStrobe(parent: Container, w: number, h: number): void {
+  parent.removeChildren().forEach((c) => c.destroy({ children: true }))
+  const red = new Graphics()
+  red.rect(0, 0, w, h).fill({ color: C.strobeRed, alpha: 1 })
+  red.alpha = 0
+  const blue = new Graphics()
+  blue.rect(0, 0, w, h).fill({ color: C.strobeBlue, alpha: 1 })
+  blue.alpha = 0
+  parent.addChild(red)
+  parent.addChild(blue)
 }
 
 function drawRoad(
@@ -718,16 +954,23 @@ export function rebuildEmpireScene(
 
   drawSky(layers.sky, w, h)
   drawSkyBloom(layers.skyBloom, w, h, gt)
+  drawMoon(layers.moon, w, h, gt)
   drawStars(layers.stars, w, h, gt)
   drawFarSkyline(layers.farSkyline, w, horizonY, skylineEmphasis)
   layers.farSkyline.filters = [getFarSkylineBlur()]
   layers.farSkyline.alpha = 0.86
   drawMidSkyline(layers.midSkyline, w, horizonY, skylineEmphasis)
   layers.midSkyline.alpha = 0.92
+  buildTwinkles(layers.twinkles, w, horizonY, skylineEmphasis, runtime)
+  buildSearchlights(layers.searchlights, w, horizonY, skylineEmphasis, runtime)
   drawFog(layers.fog, w, h, horizonY)
   drawFogFront(layers.fogFront, w, h, horizonY, groundY)
   drawHazeSmoke(layers.hazeSmoke, w, h, horizonY, groundY)
+  drawSmog2(layers.smog2, w, h, horizonY, groundY)
   addGenericMid(layers.midDistrict, w, groundY - 6, businessSum + gt * 4)
+  buildTrails(layers.trails, w, h, groundY, runtime)
+  buildEmbers(layers.embers, w, h, groundY, gt, runtime)
+  buildStrobe(layers.strobe, w, h)
   drawRoad(layers.road, w, h, groundY, snapshot.roadSpreadStage)
   drawRoadSheen(layers.roadSheen, w, h, groundY)
 
@@ -742,6 +985,7 @@ export function rebuildEmpireScene(
   runtime.vehicles = []
   runtime.particles = []
   runtime.particlesNear = []
+  // twinkles/beams/trails/embers/strobe reset inside their builders above
 
   const bCap = VISUAL_BUILDINGS_PER_BUSINESS_KIND
   const buildingAlloc = allocateCounts(
@@ -819,12 +1063,18 @@ export function rebuildEmpireScene(
     const car = new Graphics()
     const cw = 28 + (seed % 14)
     const patrol = i < patrolSlots
+    let lightL: Graphics | undefined
+    let lightR: Graphics | undefined
     if (patrol) {
       car.roundRect(-cw / 2, -7, cw, 14, 3).fill({ color: 0x0f2744, alpha: 0.98 })
       car.rect(-cw / 2 + 2, -9, cw - 4, 3).fill({ color: 0xf8fafc, alpha: 0.55 })
-      car.rect(-cw / 2 + 4, 1, 5, 3).fill({ color: 0x3b82f6, alpha: 0.85 })
-      car.rect(cw / 2 - 9, 1, 5, 3).fill({ color: 0xef4444, alpha: 0.85 })
       car.rect(-cw / 2 + 3, -5, cw - 6, 5).fill({ color: 0x1e3a5f, alpha: 0.35 })
+      lightL = new Graphics()
+      lightL.rect(-cw / 2 + 4, 1, 5, 3).fill({ color: C.strobeBlue, alpha: 0.85 })
+      lightR = new Graphics()
+      lightR.rect(cw / 2 - 9, 1, 5, 3).fill({ color: C.strobeRed, alpha: 0.85 })
+      car.addChild(lightL)
+      car.addChild(lightR)
     } else {
       car.roundRect(-cw / 2, -7, cw, 14, 3).fill({ color: 0x0c1220, alpha: 0.96 })
       car.rect(-cw / 2 + 4, -9, cw - 8, 3).fill({ color: 0xfacc15, alpha: 0.42 })
@@ -841,6 +1091,8 @@ export function rebuildEmpireScene(
       w: cw,
       dir,
       kind: patrol ? 'patrol' : 'street',
+      lightL,
+      lightR,
     })
   }
 
@@ -908,22 +1160,29 @@ export function rebuildEmpireScene(
 
   layers.sky.zIndex = 0
   layers.skyBloom.zIndex = 1
-  layers.stars.zIndex = 2
-  layers.farSkyline.zIndex = 3
-  layers.midSkyline.zIndex = 4
-  layers.fog.zIndex = 5
-  layers.fogFront.zIndex = 6
-  layers.hazeSmoke.zIndex = 7
-  layers.midDistrict.zIndex = 8
-  layers.road.zIndex = 9
-  layers.roadSheen.zIndex = 10
-  layers.territoryGlow.zIndex = 11
-  layers.buildings.zIndex = 12
-  layers.units.zIndex = 13
-  layers.vehicles.zIndex = 14
-  layers.particles.zIndex = 15
-  layers.particlesNear.zIndex = 16
-  layers.helicopter.zIndex = 17
+  layers.moon.zIndex = 2
+  layers.stars.zIndex = 3
+  layers.farSkyline.zIndex = 4
+  layers.midSkyline.zIndex = 5
+  layers.twinkles.zIndex = 6
+  layers.fog.zIndex = 7
+  layers.searchlights.zIndex = 8
+  layers.fogFront.zIndex = 9
+  layers.hazeSmoke.zIndex = 10
+  layers.smog2.zIndex = 11
+  layers.midDistrict.zIndex = 12
+  layers.road.zIndex = 13
+  layers.roadSheen.zIndex = 14
+  layers.territoryGlow.zIndex = 15
+  layers.buildings.zIndex = 16
+  layers.units.zIndex = 17
+  layers.vehicles.zIndex = 18
+  layers.trails.zIndex = 19
+  layers.particles.zIndex = 20
+  layers.particlesNear.zIndex = 21
+  layers.embers.zIndex = 22
+  layers.helicopter.zIndex = 23
+  layers.strobe.zIndex = 24
   app.stage.sortableChildren = true
 }
 
@@ -933,6 +1192,7 @@ export function tickEmpire(
   layers: EmpireLayers,
   deltaMS: number,
   power: number,
+  heat = 0,
 ): void {
   const w = app.screen.width
   const h = app.screen.height
@@ -965,6 +1225,26 @@ export function tickEmpire(
   layers.hazeSmoke.x = ((t * 0.011) % 200) - 100 + Math.sin(t * 0.000055) * 14
   layers.hazeSmoke.y = Math.sin(t * 0.000088) * 10
   layers.hazeSmoke.alpha = 0.7 + Math.sin(t * 0.00033) * 0.14
+
+  // Counter-drifting smog bank for parallax depth.
+  layers.smog2.x = -(((t * 0.008) % 260) - 130) + Math.sin(t * 0.000048) * 11
+  layers.smog2.y = Math.sin(t * 0.000066) * 8
+  layers.smog2.alpha = 0.66 + Math.sin(t * 0.00027 + 2.1) * 0.12
+
+  layers.moon.alpha = 0.92 + Math.sin(t * 0.00021) * 0.06
+
+  for (const tw of runtime.twinkles) {
+    const s = Math.sin(t * tw.speed + tw.phase)
+    // Occasional hard dropouts read as windows toggling.
+    const drop = Math.sin(t * tw.speed * 0.23 + tw.phase * 3.1) > 0.92 ? 0.12 : 1
+    tw.g.alpha = Math.max(0.04, tw.base * (0.55 + s * 0.45) * drop)
+  }
+
+  for (const beam of runtime.beams) {
+    beam.g.rotation =
+      beam.dir * (0.5 + Math.sin(t * beam.speed + beam.phase) * 0.42)
+    beam.g.alpha = 0.8 + Math.sin(t * 0.00041 + beam.phase) * 0.2
+  }
 
   layers.stars.x = Math.sin(t * 0.000042 * slow) * (5.5 * amp) * pxFar
   layers.stars.alpha = 0.8 + Math.sin(t * (0.00035 + runtime.growthTier * 0.00002)) * 0.14
@@ -1023,6 +1303,11 @@ export function tickEmpire(
     v.g.x += v.speed * v.dir * dt
     if (v.dir > 0 && v.g.x > w + 55) v.g.x = -55
     if (v.dir < 0 && v.g.x < -55) v.g.x = w + 55
+    if (v.kind === 'patrol' && v.lightL && v.lightR) {
+      const lp = Math.sin(t * 0.012)
+      v.lightL.alpha = lp > 0 ? 0.9 : 0.15
+      v.lightR.alpha = lp > 0 ? 0.15 : 0.9
+    }
   }
 
   for (const p of runtime.particles) {
@@ -1045,6 +1330,45 @@ export function tickEmpire(
     p.g.x = p.x
     p.g.y = p.y
     p.g.alpha = 0.18 + Math.sin(t * 0.002 + p.y * 0.015) * 0.1
+  }
+
+  for (const p of runtime.trails) {
+    p.x += p.vx * dt
+    if (p.vx > 0 && p.x > w + 60) p.x = -60
+    if (p.vx < 0 && p.x < -60) p.x = w + 60
+    p.g.x = p.x + fg * 0.5
+    p.g.alpha = p.a * (0.75 + Math.sin(t * 0.004 + p.y) * 0.25)
+  }
+
+  for (const p of runtime.embers) {
+    p.x += (p.vx + Math.sin(t * 0.0011 + p.y * 0.02) * 0.09) * dt
+    p.y += p.vy * dt
+    if (p.y < horizonY) {
+      p.y = h - 12
+      p.x = ((p.x * 97 + 41) % Math.max(60, w - 40)) + 20
+    }
+    if (p.x < -12) p.x = w + 12
+    if (p.x > w + 12) p.x = -12
+    p.g.x = p.x
+    p.g.y = p.y
+    // Fade as they rise.
+    const rise = Math.min(1, Math.max(0, (h - p.y) / Math.max(1, h - horizonY)))
+    p.g.alpha = p.a * (1 - rise * 0.75) * (0.7 + Math.sin(t * 0.006 + p.x) * 0.3)
+  }
+
+  // Heat-driven police strobe wash.
+  const strobeAmt = Math.max(0, Math.min(1, (heat - 45) / 50))
+  if (strobeAmt > 0) {
+    const kids = layers.strobe.children
+    const red = kids[0]
+    const blue = kids[1]
+    const phase = Math.sin(t * 0.014)
+    if (red) red.alpha = Math.max(0, phase) * 0.11 * strobeAmt
+    if (blue) blue.alpha = Math.max(0, -phase) * 0.11 * strobeAmt
+  } else {
+    const kids = layers.strobe.children
+    if (kids[0]) kids[0].alpha = 0
+    if (kids[1]) kids[1].alpha = 0
   }
 
   const pulse = 0.42 + Math.sin(t * 0.0033) * 0.28
@@ -1071,7 +1395,10 @@ export function tickEmpire(
       }
     }
     if (b.kind === 'club' && b.neon) {
-      b.neon.alpha = pulse * (0.88 + neonPulse * 0.12)
+      // Hard dropouts every ~2s window sell real neon flicker.
+      const dropSeed = hash(Math.floor(t / 900) + bi * 131)
+      const dropout = dropSeed % 19 === 0 ? 0.3 : dropSeed % 7 === 0 ? 0.75 : 1
+      b.neon.alpha = pulse * (0.88 + neonPulse * 0.12) * dropout
     }
     if (b.kind === 'club' && b.groundGlow) {
       b.groundGlow.alpha = 0.1 + neonPulse * 0.12 + Math.sin(t * 0.0035 + ph) * 0.06
@@ -1093,18 +1420,25 @@ export function tickEmpire(
 export function createEmpireLayers(): EmpireLayers {
   const sky = new Graphics()
   const skyBloom = new Graphics()
+  const moon = new Graphics()
   const stars = new Graphics()
   const farSkyline = new Container()
   const midSkyline = new Container()
+  const searchlights = new Container()
+  const twinkles = new Container()
   const fog = new Graphics()
   const fogFront = new Graphics()
   const hazeSmoke = new Graphics()
+  const smog2 = new Graphics()
   const midDistrict = new Container()
   const road = new Graphics()
   const roadSheen = new Graphics()
   const buildings = new Container()
   const units = new Container()
   const vehicles = new Container()
+  const trails = new Container()
+  const embers = new Container()
+  const strobe = new Container()
   const particles = new Container()
   const particlesNear = new Container()
   const territoryGlow = new Graphics()
@@ -1113,18 +1447,25 @@ export function createEmpireLayers(): EmpireLayers {
   return {
     sky,
     skyBloom,
+    moon,
     stars,
     farSkyline,
     midSkyline,
+    searchlights,
+    twinkles,
     fog,
     fogFront,
     hazeSmoke,
+    smog2,
     midDistrict,
     road,
     roadSheen,
     buildings,
     units,
     vehicles,
+    trails,
+    embers,
+    strobe,
     particles,
     particlesNear,
     territoryGlow,
@@ -1136,12 +1477,16 @@ export function mountEmpireLayers(stage: Container, layers: EmpireLayers): void 
   stage.removeChildren()
   stage.addChild(layers.sky)
   stage.addChild(layers.skyBloom)
+  stage.addChild(layers.moon)
   stage.addChild(layers.stars)
   stage.addChild(layers.farSkyline)
   stage.addChild(layers.midSkyline)
+  stage.addChild(layers.twinkles)
   stage.addChild(layers.fog)
+  stage.addChild(layers.searchlights)
   stage.addChild(layers.fogFront)
   stage.addChild(layers.hazeSmoke)
+  stage.addChild(layers.smog2)
   stage.addChild(layers.midDistrict)
   stage.addChild(layers.road)
   stage.addChild(layers.roadSheen)
@@ -1149,7 +1494,10 @@ export function mountEmpireLayers(stage: Container, layers: EmpireLayers): void 
   stage.addChild(layers.buildings)
   stage.addChild(layers.units)
   stage.addChild(layers.vehicles)
+  stage.addChild(layers.trails)
   stage.addChild(layers.particles)
   stage.addChild(layers.particlesNear)
+  stage.addChild(layers.embers)
   stage.addChild(layers.helicopter)
+  stage.addChild(layers.strobe)
 }

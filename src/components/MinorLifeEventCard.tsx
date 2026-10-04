@@ -5,11 +5,7 @@ import { playEventChoicePress } from '../animations/eventModalFx'
 import { LIFE_EVENTS } from '../data/lifeEvents'
 import type { EventChoiceDef, GameState } from '../data/types'
 import { getEmbeddedNarrativeEventDef } from '../game/lifeEventFlow'
-import {
-  effectiveLifeMoneyCost,
-  effectiveLifePowerCost,
-  lifeChoiceDisplayLabel,
-} from '../game/lifeChoiceCosts'
+import { choiceMinStockpileNeeded, lifeChoiceDisplayLabel } from '../game/lifeChoiceCosts'
 
 type Props = {
   eventId: string
@@ -18,11 +14,8 @@ type Props = {
 }
 
 function choiceDisabled(state: GameState, c: EventChoiceDef): boolean {
-  const cm = effectiveLifeMoneyCost(state, c)
-  const cp = effectiveLifePowerCost(state, c)
-  const md = c.moneyDelta
-  const minNeed = cm + (md !== undefined && md < 0 ? -md : 0)
-  if (state.money < minNeed || state.power < cp) return true
+  const need = choiceMinStockpileNeeded(state, c)
+  if (state.money < need.money || state.power < need.power) return true
   return false
 }
 

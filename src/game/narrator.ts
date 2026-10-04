@@ -612,6 +612,138 @@ const LINES: Record<string, string | ((state: GameState) => string)> = {
   story_wire_fail: () => 'Sparks misbehaved. Your shoes filed a complaint.',
 
   story_wire_nope: () => 'You declined chaos. Chaos respects boundaries—sometimes.',
+
+  life_echo_goodwill: () =>
+    'The block remembers kindness the way ledgers remember debt—quietly, and for a long time.',
+
+  life_tribute_again: () =>
+    'Paying once taught them the route. Now the route has a return schedule.',
+
+  life_reckoning: () =>
+    'Refusal is a language. The city heard you. It is practicing its answer.',
+
+  life_health_crash: () =>
+    'Your body finally submitted the invoice. Interest included, no receipts offered.',
+
+  life_press_aftermath: () =>
+    'Fame is a lamp: it warms the room and shows everyone where the door is.',
+
+  life_bookie_return: () =>
+    'Winning once makes you a customer. Winning twice makes you a regular. Regulars get offers.',
+
+  life_clone_showdown: () =>
+    'Imitation graduated to competition. Now the student wants your desk.',
+
+  life_partner_drift: () =>
+    'Silence is also an answer. Yours echoed long enough to come back.',
+
+  life_cold_ex_echo: () =>
+    'Going cold worked. That is the problem—it worked on everything.',
+
+  life_rumor_payback: () =>
+    'You ignored the rumor. The rumor did not return the courtesy.',
+
+  life_whisper_payoff: () =>
+    'Good intel compounds like interest—if you keep paying the informant tax.',
+
+  life_bl_desk_hold: () =>
+    'You kept the lunch money safe. Somewhere, an honest version of you keeps score too.',
+
+  life_bl_desk_skim: () =>
+    'A bill went missing and a habit went found. The street learned your hands early.',
+
+  life_bl_desk_confess: () =>
+    'You handed it back clean. Marisol still owes you an empanada. The ledger notes it.',
+
+  life_bl_kid_hire: () =>
+    'The block got younger and sharper. Little eyes are cheaper than cameras and twice as loyal.',
+
+  life_bl_kid_shoo: () =>
+    'You sent the eyes away. The block kept watching anyway—it always does.',
+
+  life_bl_kid_mentor: () =>
+    'Fed instead of hired. Some investments pay in a different currency.',
+
+  life_bl_mixtape_cut: () =>
+    'Merch moves quiet. Your name rides in the trunk now—cut taken, risk taken.',
+
+  life_bl_mixtape_pass: () =>
+    'You let the trunk close without you. Clean hands, thinner pockets.',
+
+  life_bl_deshawn_win: () =>
+    'The sure thing was sure once. Enjoy it—DeShawn’s luck is a rental, not a lease.',
+
+  life_bl_deshawn_lose: () =>
+    'A checkpoint ate the shipment and the stake. DeShawn learned; you paid tuition.',
+
+  life_bl_deshawn_pass: () =>
+    'You passed on the sure thing. DeShawn filed you under “smart” or “cold.” Both true.',
+
+  life_bl_school_enroll: () =>
+    'Room 204. Free coffee. The street still runs—it just has to wait until Thursday now.',
+
+  life_bl_school_skip: () =>
+    'The flyer went in the gutter. The lessons you skip collect interest too.',
+
+  life_bl_phone_confess: () =>
+    'You put the whole truth on the counter next to the phone. It held.',
+
+  life_bl_phone_lie_win: () =>
+    'The story landed clean. The phone stays quiet—this time.',
+
+  life_bl_phone_lie_fail: () =>
+    'The story cracked on detail three. Now the couch has your name on it.',
+
+  life_bl_jury_serve: () =>
+    'Civic duty served. The city files you under “reliable”—a useful disguise.',
+
+  life_bl_jury_handle: () =>
+    'A clerk somewhere earned a favor and a summons forgot your name. Strings pull quietly.',
+
+  life_bl_funeral_go: () =>
+    'You wore the good suit. The back row of old men nodded once—street eulogy complete.',
+
+  life_bl_funeral_skip: () =>
+    'The text said 🙏. The empty chair said more. Some math doesn’t balance.',
+
+  life_bl_dice_win: () =>
+    'The dice obeyed like they owed you money. You left before the table remembered otherwise.',
+
+  life_bl_dice_lose: () =>
+    'The table ate politely and thanked you for coming. Upstairs games bill by the lesson.',
+
+  life_bl_dice_watch: () =>
+    'You watched the dealer’s hands all night. Knowledge is the only stake that pays out forever.',
+
+  life_bl_attic_keep: () =>
+    'The plastic badge stays in your pocket. Junior Deputy, still on duty.',
+
+  life_bl_attic_sell: () =>
+    'The shoebox became dollars. The photo stayed behind, free of charge.',
+
+  life_bl_inheritance: () =>
+    'Reggie’s last hand dealt clean. The envelope was heavy; the note was heavier.',
+
+  life_bl_diploma: () =>
+    'Certified, stamped, and framed. The quiet hustle now has paperwork.',
+
+  life_bl_deshawn_forgive: () =>
+    'Sorry came with a route map. Some apologies arrive with interest.',
+
+  life_bl_deshawn_hardno: () =>
+    'Blocked mid-ring. Some chapters close without a sequel.',
+
+  life_bl_kid_made: () =>
+    'Tay got the title he never applied for. The block’s best eyes now wear your colors.',
+
+  life_bl_kid_schooled: () =>
+    'You bought him the other life. He’ll never know how close he came to yours.',
+
+  life_bl_kid_letgo: () =>
+    'He walked across the bridge. Next time you see his name, it will be on someone else’s payroll.',
+
+  life_weakness_smell: () =>
+    'Give an inch on a map and someone redraws the whole block.',
 }
 
 /** Narrator keys used by passive danger ambience (random pick). */

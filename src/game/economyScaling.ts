@@ -48,7 +48,7 @@ export function passiveEconomyDragMultiplier(state: GameState): number {
   const t = countTerritoriesOwned(state.territoriesOwned)
   const m = state.money
   if (t < 4 && m < 120_000) return 1
-  if (t < 9 && m < 2_500_000) return 0.93
-  if (m < 40_000_000) return 0.89
-  return 0.91
+  if (t < 9 && m < 2_500_000) return 0.84
+  if (m < 40_000_000) return 0.78
+  return 0.82
 }

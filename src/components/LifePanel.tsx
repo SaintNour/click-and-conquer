@@ -1,6 +1,7 @@
 import { effectiveDateCost, effectiveGiftCost, effectiveMarriageCost } from '../game/lifeEngine'
 import { houseTierAtLevel, MAX_HOUSE_LEVEL_INDEX } from '../data/lifeContent'
 import type { GameState } from '../data/types'
+import { activeBranchTraits, type BranchTrait } from '../game/branchTraits'
 import type { LifeSocialAction } from '../game/gameLogic'
 import {
   familyPrestigeProgressMet,
@@ -10,6 +11,16 @@ import {
 import { TOOLTIPS } from '../data/tooltips'
 import { GameTooltip } from './GameTooltip'
 import { HousePanel } from './HousePanel'
+
+function traitEffectLines(t: BranchTrait): string[] {
+  const out: string[] = []
+  const pct = (v: number) => `${v >= 1 ? '+' : ''}${((v - 1) * 100).toFixed(1)}%`
+  if (t.moneyMult) out.push(`${pct(t.moneyMult)} cash`)
+  if (t.powerMult) out.push(`${pct(t.powerMult)} power`)
+  if (t.heatGainMult) out.push(`${pct(t.heatGainMult)} heat gain`)
+  if (t.rivalPressureMult) out.push(`${pct(t.rivalPressureMult)} rival pressure`)
+  return out
+}
 
 type Props = {
   state: GameState
@@ -57,6 +68,7 @@ export function LifePanel({
   const showStatBars = relationshipActive
   const showPropose = state.relationshipUnlocked && state.hasPartner && !state.married
 
+  const traits = activeBranchTraits(state)
   const showPrestige = lifePanelShowsPrestige(state)
   const canFamilyPrestige = familyPrestigeProgressMet(state)
   const canSoloPrestige = soloPrestigeProgressMet(state)
@@ -239,6 +251,21 @@ export function LifePanel({
           ) : null}
         </>
       )}
+
+      {traits.length > 0 ? (
+        <div className="life-panel__rep" aria-label="Street reputation">
+          <p className="life-panel__rep-title">Street rep</p>
+          <ul className="life-panel__rep-list">
+            {traits.map((t) => (
+              <li key={t.flag} className="life-panel__rep-item" title={t.blurb}>
+                <span className="life-panel__rep-name">{t.name}</span>
+                <span className="life-panel__rep-fx">{traitEffectLines(t).join(' · ')}</span>
+              </li>
+            ))}
+          </ul>
+          <p className="life-panel__rep-hint">Your past choices echo here — permanently.</p>
+        </div>
+      ) : null}
 
       {omitHouse ? null : (
         <HousePanel state={state} onBuyItem={onBuyHouseItem} onPlace={onPlaceHouseItem} />

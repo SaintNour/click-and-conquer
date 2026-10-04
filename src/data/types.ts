@@ -66,10 +66,26 @@ export type TerritoryDef = {
   rewardMoney: number
 }
 
+/**
+ * Resource delta scaled to the player's current stockpile.
+ * Resolved as: sign(fraction) * clamp(round(|current * fraction|), floor, cap).
+ * Negative `fraction` = loss; positive = gain. Keeps flat rewards meaningful
+ * at every stage of the economy (early game floored, late game capped).
+ */
+export type ScaledResourceDelta = {
+  fraction: number
+  floor: number
+  cap: number
+}
+
 /** Result of a stochastic choice (shown in result card + narrator). */
 export type EventOutcomeBundle = {
   moneyDelta?: number
   powerDelta?: number
+  /** Wealth-scaled alternative to moneyDelta (ignored when moneyDelta is set). */
+  scaledMoneyDelta?: ScaledResourceDelta
+  /** Power-scaled alternative to powerDelta (ignored when powerDelta is set). */
+  scaledPowerDelta?: ScaledResourceDelta
   passiveBonusDelta?: number
   narratorId: string
   resultTitle: string
@@ -92,6 +108,10 @@ export type EventOutcomeBundle = {
   happinessDelta?: number
   /** Opens relationship panel track without instantly partnering. */
   relationshipPathUnlock?: boolean
+  /** Persistent consequence flags this outcome writes into lifeBranchFlags. */
+  lifeBranchFlagsSet?: string[]
+  /** Persistent consequence flags this outcome clears from lifeBranchFlags. */
+  lifeBranchFlagsClear?: string[]
 }
 
 /** Optional rival hooks on deterministic event choices (same fields as bundle subset). */
@@ -131,6 +151,14 @@ export type EventChoiceDef = {
   /** Legacy deterministic: applied directly when successChance is omitted */
   moneyDelta?: number
   powerDelta?: number
+  /** Wealth-scaled deterministic alternative to moneyDelta (ignored when moneyDelta is set). */
+  scaledMoneyDelta?: ScaledResourceDelta
+  /** Power-scaled deterministic alternative to powerDelta (ignored when powerDelta is set). */
+  scaledPowerDelta?: ScaledResourceDelta
+  /** Persistent consequence flags written into lifeBranchFlags when this choice resolves. */
+  lifeBranchFlagsSet?: string[]
+  /** Persistent consequence flags cleared from lifeBranchFlags when this choice resolves. */
+  lifeBranchFlagsClear?: string[]
   /** Adds to the event/rival passiveScale modifier (legacy name; not tick-based growth). */
   passiveBonusDelta?: number
   affectionDelta?: number
@@ -221,6 +249,8 @@ export type RandomEventDef = {
   requiresLivingRivals?: boolean
   /** Life: require all of these keys to be true in `lifeBranchFlags` (persistent story forks). */
   requiresLifeBranchKeys?: string[]
+  /** Life: never offer while any of these keys is true in `lifeBranchFlags` (one-shot arcs). */
+  forbiddenLifeBranchKeys?: string[]
   /** Blocking meet: custom conversation UI instead of flat choices. */
   meetConvo?: MeetConvoContent
 }
@@ -446,6 +476,13 @@ export type GameState = {
   territoryFirstCaptureSeen: Record<string, boolean>
   /** Persistent life-event branch flags (snubs, deals, etc.) for follow-up events. */
   lifeBranchFlags: Record<string, boolean>
+
+  /** Hustle streak: consecutive manual clicks inside the streak window. */
+  clickStreak: number
+  /** Wall-clock ms when the current streak expires (0 = no live streak). */
+  clickStreakUntilMs: number
+  /** Best streak this run (drives flavor + a small flex stat). */
+  bestClickStreak: number
   /** Cooldown end tick for “launder heat” spend (0 = ready). */
   heatLaunderCooldownEndTick: number
 

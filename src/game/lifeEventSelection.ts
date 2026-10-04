@@ -1,6 +1,6 @@
 import { LIFE_EVENTS } from '../data/lifeEvents'
 import { getLifeEventTier } from './balanceConfig'
-import { effectiveLifeMoneyCost, effectiveLifePowerCost } from './lifeChoiceCosts'
+import { choiceMinStockpileNeeded } from './lifeChoiceCosts'
 import type { EventChoiceDef, GameState, RandomEventDef } from '../data/types'
 import { GANG_DEMAND_EVENT_ID, GANG_RUMOR_EVENT_ID } from './gangArcEngine'
 
@@ -14,10 +14,12 @@ const WEIGHT: Record<'small' | 'medium' | 'major', number> = {
 }
 
 function lifeBranchOk(state: GameState, ev: RandomEventDef): boolean {
-  const req = ev.requiresLifeBranchKeys
-  if (!req?.length) return true
   const flags = state.lifeBranchFlags ?? {}
-  return req.every((k) => flags[k])
+  const req = ev.requiresLifeBranchKeys
+  if (req?.length && !req.every((k) => flags[k])) return false
+  const forb = ev.forbiddenLifeBranchKeys
+  if (forb?.length && forb.some((k) => flags[k])) return false
+  return true
 }
 
 function tierWeight(ev: RandomEventDef): number {
@@ -59,13 +61,10 @@ function eventIsGangArc(ev: RandomEventDef): boolean {
   return ev.id === GANG_RUMOR_EVENT_ID || ev.id === GANG_DEMAND_EVENT_ID
 }
 
-/** Upfront costs + legacy negative moneyDelta (treated as spend). */
+/** Upfront costs + any negative resolved deltas (scaled included). */
 function choiceUpfrontAffordable(state: GameState, c: EventChoiceDef): boolean {
-  const cm = effectiveLifeMoneyCost(state, c)
-  const cp = effectiveLifePowerCost(state, c)
-  const md = c.moneyDelta
-  const spend = cm + (md !== undefined && md < 0 ? -md : 0)
-  return state.money >= spend && state.power >= cp
+  const need = choiceMinStockpileNeeded(state, c)
+  return state.money >= need.money && state.power >= need.power
 }
 
 /** At least one choice can be picked without soft-locking the modal. */
