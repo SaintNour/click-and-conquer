@@ -2850,8 +2850,26 @@
 
 /* Modal */
 /* Non-blocking minor life events — embedded in main column (no overlay, no screen dim). */
+@keyframes minor-life-card-in {
+  from {
+    transform: translateY(10px) scale(0.98);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .minor-life-event--embedded {
+    animation: none;
+  }
+}
+
 .minor-life-event--embedded {
   position: relative;
+  animation: minor-life-card-in 0.36s cubic-bezier(0.22, 1, 0.36, 1);
   width: 100%;
   z-index: 1;
   padding: 0.65rem 0.75rem 0.75rem;

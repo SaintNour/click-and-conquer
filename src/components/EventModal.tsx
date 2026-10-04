@@ -105,6 +105,9 @@ export function EventModal({ eventId, state, onResolve }: Props) {
             ? {
                 ...c,
                 costPower: strikeFirstCost,
+                // Clear the def's scaled cost so the dynamic override wins (else
+                // effectiveLifePowerCost prefers scaledPowerCost and displayed ≠ charged).
+                scaledPowerCost: undefined,
                 label: `Strike first (${strikeFirstCost.toLocaleString()}⚡)`,
               }
             : c,

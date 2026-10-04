@@ -133,6 +133,7 @@ export function MainClicker({ state, onClick, embeddedEventId, onResolveEmbedded
       {embeddedId && onResolveEmbeddedEvent ? (
         <div className="main-clicker__life-slot">
           <MinorLifeEventCard
+            key={embeddedId}
             eventId={embeddedId}
             state={state}
             onResolve={onResolveEmbeddedEvent}

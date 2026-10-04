@@ -1,5 +1,4 @@
-import gsap from 'gsap'
-import { useLayoutEffect, useRef } from 'react'
+import { useLayoutEffect } from 'react'
 import { playMinorLifeEventOpenSfx } from '../audio/gameSfx'
 import { playEventChoicePress } from '../animations/eventModalFx'
 import { LIFE_EVENTS } from '../data/lifeEvents'
@@ -19,27 +18,12 @@ function choiceDisabled(state: GameState, c: EventChoiceDef): boolean {
   return false
 }
 
-function reducedMotion(): boolean {
-  return (
-    typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
-  )
-}
-
 export function MinorLifeEventCard({ eventId, state, onResolve }: Props) {
-  const rootRef = useRef<HTMLDivElement>(null)
   const ev = getEmbeddedNarrativeEventDef(eventId)
 
   useLayoutEffect(() => {
     if (!ev) return
     queueMicrotask(() => playMinorLifeEventOpenSfx())
-    const el = rootRef.current
-    if (!el || reducedMotion()) return
-    gsap.killTweensOf(el, 'opacity,y,scale')
-    gsap.fromTo(
-      el,
-      { y: 10, opacity: 0, scale: 0.98 },
-      { y: 0, opacity: 1, scale: 1, duration: 0.36, ease: 'power3.out' },
-    )
   }, [eventId, ev])
 
   if (!ev) return null
@@ -54,7 +38,6 @@ export function MinorLifeEventCard({ eventId, state, onResolve }: Props) {
 
   return (
     <div
-      ref={rootRef}
       className="minor-life-event minor-life-event--embedded"
       role="region"
       aria-label={isLifeCard ? 'Life event' : 'Street event'}
