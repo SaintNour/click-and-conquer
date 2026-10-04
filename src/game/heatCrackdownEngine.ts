@@ -1,4 +1,5 @@
 import type { GameState, HeatMaxDebuffKind } from '../data/types'
+import { BUSINESSES } from '../data/businesses'
 import {
   HEAT_CAP,
   HEAT_CRACKDOWN_INCOME_MULT,
@@ -26,6 +27,17 @@ export function isHeatGracePeriod(state: GameState): boolean {
 }
 
 const DEBUFF_KINDS: HeatMaxDebuffKind[] = ['police', 'surveillance', 'freeze', 'shakedown', 'audit']
+
+/** True while a police raid is holding one business's income hostage. */
+export function isBusinessRaided(state: GameState, businessId: string): boolean {
+  return state.raidedBusinessId === businessId && state.raidEndTick > state.tickCount
+}
+
+function pickRaidTarget(state: GameState): string | null {
+  const owned = BUSINESSES.filter((b) => (state.businessLevels[b.id] ?? 0) > 0)
+  if (owned.length === 0) return null
+  return owned[Math.floor(Math.random() * owned.length)]!.id
+}
 
 function effectiveDebuffKind(state: GameState): HeatMaxDebuffKind | null {
   if (state.heatCrackdownEndTick <= state.tickCount) return null
@@ -81,11 +93,11 @@ function maxHeatGracePenaltyActive(state: GameState): boolean {
 
 const PENALTY_COPY: Record<HeatMaxDebuffKind, { title: string; lines: readonly string[] }> = {
   police: {
-    title: 'Police crackdown',
+    title: 'Police raid',
     lines: [
-      'Too much heat. Authorities and rivals are watching you.',
-      'Patrols tighten and your name is on whisper lists.',
-      'You pushed visibility past the line—time to cool off before the next score.',
+      'Sirens on your block—they kicked the door and impounded the till.',
+      'Yellow tape on the storefront. Your crew watches the street, not the register.',
+      'They hit one of your fronts and padlocked the cash flow.',
     ],
   },
   surveillance: {
@@ -152,7 +164,7 @@ export function heatCrackdownPowerGainMultiplier(state: GameState): number {
 }
 
 const HUD_LABEL: Record<HeatMaxDebuffKind, string> = {
-  police: 'Crackdown',
+  police: 'Raid',
   surveillance: 'Watchers',
   freeze: 'Freeze',
   shakedown: 'Shakedown',
@@ -173,12 +185,18 @@ export function heatMaxDebuffHud(state: GameState): {
     const powMult = powerGainMultForKind(kind)
     const powPct = kind === 'freeze' ? Math.round((1 - powMult) * 100) : 0
     const base = PENALTY_COPY[kind]
+    const raidName =
+      kind === 'police' && state.raidedBusinessId
+        ? (BUSINESSES.find((b) => b.id === state.raidedBusinessId)?.name ?? null)
+        : null
     const meta =
       kind === 'freeze'
         ? `−${incPct}% income · −${powPct}% crew power · ${sec}s`
-        : `−${incPct}% income · ${sec}s`
+        : raidName
+          ? `${raidName} seized · −${incPct}% income · ${sec}s`
+          : `−${incPct}% income · ${sec}s`
     return {
-      label: HUD_LABEL[kind],
+      label: raidName ? `Raid: ${raidName}` : HUD_LABEL[kind],
       title: `${base.title} — temporary penalty from max heat.`,
       meta,
     }
@@ -202,6 +220,7 @@ export function heatMaxDebuffHud(state: GameState): {
  */
 export function applyRandomHeatMaxPenalty(state: GameState): GameState {
   const kind = DEBUFF_KINDS[Math.floor(Math.random() * DEBUFF_KINDS.length)]!
+  const raidTarget = kind === 'police' ? pickRaidTarget(state) : null
   const w = economyWealthPressure01(state)
   let debuffTicks =
     HEAT_DEBUFF_DURATION_MIN_TICKS +
@@ -253,7 +272,11 @@ export function applyRandomHeatMaxPenalty(state: GameState): GameState {
   }
 
   const copy = PENALTY_COPY[kind]
-  const detail = copy.lines[Math.floor(Math.random() * copy.lines.length)]!
+  let detail = copy.lines[Math.floor(Math.random() * copy.lines.length)]!
+  if (raidTarget) {
+    const biz = BUSINESSES.find((b) => b.id === raidTarget)
+    if (biz) detail = `${detail} Hit: ${biz.name} — its income is seized until the heat dies down.`
+  }
 
   return {
     ...state,
@@ -263,6 +286,8 @@ export function applyRandomHeatMaxPenalty(state: GameState): GameState {
     heatCapGraceEndTick: 0,
     heatGracePeriodActive: false,
     heatMaxDebuffKind: kind,
+    raidedBusinessId: raidTarget,
+    raidEndTick: raidTarget ? state.tickCount + debuffTicks : 0,
     heatCrackdownEndTick: state.tickCount + debuffTicks,
     heatCrackdownNonce: state.heatCrackdownNonce + 1,
     heatWarningLatch: false,
@@ -280,5 +305,11 @@ export function applyRandomHeatMaxPenalty(state: GameState): GameState {
 export function clearExpiredHeatCrackdown(state: GameState): GameState {
   if (state.heatCrackdownEndTick <= 0) return state
   if (state.tickCount < state.heatCrackdownEndTick) return state
-  return { ...state, heatCrackdownEndTick: 0, heatMaxDebuffKind: null }
+  return {
+    ...state,
+    heatCrackdownEndTick: 0,
+    heatMaxDebuffKind: null,
+    raidedBusinessId: null,
+    raidEndTick: 0,
+  }
 }

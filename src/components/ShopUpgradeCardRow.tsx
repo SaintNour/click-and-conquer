@@ -43,6 +43,8 @@ type Props = {
   icon: ReactNode
   /** Base title/tooltip when locked or contextual. */
   hintTitle?: string
+  /** Police raid: income seized — show a RAIDED ribbon and mute the card. */
+  raided?: boolean
 }
 
 export function ShopUpgradeCardRow({
@@ -63,6 +65,7 @@ export function ShopUpgradeCardRow({
   lockMessages,
   icon,
   hintTitle,
+  raided = false,
 }: Props) {
   const rowRef = useRef<HTMLLIElement | null>(null)
   const [hovered, setHovered] = useState(false)
@@ -134,6 +137,7 @@ export function ShopUpgradeCardRow({
     lockedVisual ? 'shop-card-row--locked' : '',
     interactive ? 'shop-card-row--interactive' : '',
     unaffordable ? 'shop-card-row--unaffordable' : '',
+    raided ? 'shop-card-row--raided' : '',
   ]
     .filter(Boolean)
     .join(' ')
@@ -172,12 +176,12 @@ export function ShopUpgradeCardRow({
         ) : null}
       </div>
       <div className="shop-card-row__main">
-        <div className="shop-card-row__title">{title}</div>
+        <div className="shop-card-row__title">
+          {title}
+          {raided ? <span className="shop-card-row__raided-badge">RAIDED</span> : null}
+        </div>
         <div className="shop-card-row__purpose">{description}</div>
-        <span
-          key={`lv-${level}`}
-          className={`shop-card-row__level shop-card-row__level--t${tier}`}
-        >
+        <span key={`lv-${level}`} className={`shop-card-row__level shop-card-row__level--t${tier}`}>
           Lv {level}
         </span>
         {lockMessages}

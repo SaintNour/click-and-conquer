@@ -104,6 +104,7 @@ export function passivePowerPerSecond(state: GameState): number {
 
 export function passiveMoneyPerSecond(state: GameState): number {
   const base = BUSINESSES.reduce((sum, b) => {
+    if (state.raidedBusinessId === b.id && state.raidEndTick > state.tickCount) return sum
     const lv = state.businessLevels[b.id] ?? 0
     const m = businessMoneyMultiplier(state, b.id)
     return sum + lv * b.moneyPerSecond * m

@@ -1,6 +1,7 @@
 import { Application } from 'pixi.js'
 import { useEffect, useRef } from 'react'
 import type { GameState } from '../../data/types'
+import { isHeatCrackdownActive } from '../../game/heatCrackdownEngine'
 import { empireSnapshotFromState, empireSnapshotKey } from '../../game/visualMetrics'
 import {
   createEmpireLayers,
@@ -98,14 +99,11 @@ export function StreetBackground({ state, empireVisualKey }: Props) {
         const a = appRef.current
         const L = layersRef.current
         if (!a || !L) return
-        tickEmpire(
-          runtime,
-          a,
-          L,
-          app.ticker.deltaMS,
-          stateRef.current.power,
-          stateRef.current.heat,
-        )
+        const s = stateRef.current
+        // Keep the strobe wash hot through the crackdown even though the
+        // penalty resets heat — the street stays lit while the raid runs.
+        const sceneHeat = Math.max(s.heat, isHeatCrackdownActive(s) ? 95 : 0)
+        tickEmpire(runtime, a, L, app.ticker.deltaMS, s.power, sceneHeat)
       })
 
       const onVis = () => {
@@ -150,9 +148,5 @@ export function StreetBackground({ state, empireVisualKey }: Props) {
     // empireVisualKey ensures this runs when recruit/business/territory/power-tier changes
   }, [empireVisualKey])
 
-  return (
-    <div className="street-bg" ref={hostRef} aria-hidden>
-      <div className="street-bg__art" />
-    </div>
-  )
+  return <div className="street-bg" ref={hostRef} aria-hidden />
 }

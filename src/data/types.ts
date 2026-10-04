@@ -357,6 +357,10 @@ export type GameState = {
   heatGracePeriodActive: boolean
   /** Which random penalty is active for the current heatCrackdownEndTick window; null when no debuff. */
   heatMaxDebuffKind: HeatMaxDebuffKind | null
+  /** Business the police raided on the current crackdown — its passive income is seized while the debuff runs. */
+  raidedBusinessId: string | null
+  /** Tick index (exclusive) when the raid ends; coincides with heatCrackdownEndTick. */
+  raidEndTick: number
   /** Latch so heat-warning SFX does not spam until heat drops. */
   heatWarningLatch: boolean
   /** Bumps when crossing high-heat warning threshold (SFX). */

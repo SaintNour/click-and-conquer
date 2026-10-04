@@ -122,30 +122,7 @@
   z-index: 0;
   pointer-events: none;
   opacity: 0.97;
-  background: #06060f url('/shop/city-bg.jpg') center bottom / cover no-repeat;
-}
-
-/* Painted backdrop gets a slow cinematic drift so the scene breathes. */
-.street-bg__art {
-  position: absolute;
-  inset: -3%;
-  background: url('/shop/city-bg.jpg') center bottom / cover no-repeat;
-  animation: city-drift 46s ease-in-out infinite alternate;
-}
-
-@keyframes city-drift {
-  0% {
-    transform: scale(1.02) translate(0, 0);
-  }
-  100% {
-    transform: scale(1.07) translate(-1.2%, -0.8%);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .street-bg__art {
-    animation: none;
-  }
+  background: #06060f;
 }
 
 .danger-feedback-overlay {
@@ -1967,6 +1944,59 @@
   border-color: rgba(185, 28, 28, 0.38);
 }
 
+/* Police raid: seized business — strobing border + RAIDED ribbon. */
+.shop-card-row--raided {
+  border-color: rgba(239, 68, 68, 0.55);
+  filter: saturate(0.75) brightness(0.92);
+  animation: shop-raid-frame 0.55s ease-in-out infinite;
+}
+
+@keyframes shop-raid-frame {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 1px rgba(239, 68, 68, 0.4),
+      0 0 16px rgba(239, 68, 68, 0.28);
+  }
+  50% {
+    box-shadow:
+      0 0 0 1px rgba(59, 130, 246, 0.4),
+      0 0 16px rgba(59, 130, 246, 0.28);
+  }
+}
+
+.shop-card-row__raided-badge {
+  display: inline-block;
+  margin-left: 0.4rem;
+  padding: 0.05rem 0.34rem;
+  border-radius: 4px;
+  font-size: 0.55rem;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  vertical-align: middle;
+  color: #fff;
+  background: repeating-linear-gradient(-45deg, #dc2626 0 6px, #1d4ed8 6px 12px);
+  box-shadow: 0 0 10px rgba(220, 38, 38, 0.55);
+  animation: shop-raid-badge-flash 0.55s ease-in-out infinite;
+}
+
+@keyframes shop-raid-badge-flash {
+  0%,
+  100% {
+    filter: brightness(1.25);
+  }
+  50% {
+    filter: brightness(0.85);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shop-card-row--raided,
+  .shop-card-row__raided-badge {
+    animation: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .shop-card-row--interactive {
     transition:
@@ -2145,7 +2175,12 @@
 }
 .shop-card-row__level--t4 {
   --lv-fg: #fff;
-  --lv-bg: linear-gradient(120deg, rgba(244, 63, 94, 0.3), rgba(251, 191, 36, 0.3), rgba(34, 211, 238, 0.3));
+  --lv-bg: linear-gradient(
+    120deg,
+    rgba(244, 63, 94, 0.3),
+    rgba(251, 191, 36, 0.3),
+    rgba(34, 211, 238, 0.3)
+  );
   --lv-bd: rgba(251, 191, 36, 0.8);
   --lv-glow: rgba(217, 70, 239, 0.65);
 }

@@ -118,6 +118,9 @@ export const HEAT_CAP = 100
 /** Passive heat bleed per tick (1 tick ≈ 1 s) while you are still “active” (recent manual hustle). */
 export const HEAT_DECAY_PER_TICK = 0.12
 
+/** Flat heat per manual Hustle click — click cadence is the primary heat driver. */
+export const HEAT_PER_MANUAL_CLICK = 0.9
+
 /**
  * After this many ticks without a manual hustle click, heat uses `HEAT_IDLE_FAST_DECAY_PER_TICK`
  * instead of `HEAT_DECAY_PER_TICK` (stops heat from sitting at 100% between bursts).

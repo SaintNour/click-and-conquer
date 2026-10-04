@@ -138,6 +138,9 @@ type BuildingAnim = {
   laundryRotor?: Container
   /** soft ground glow */
   groundGlow?: Graphics
+  /** police raid strobes on this building (alternating red/blue) */
+  raidRed?: Graphics
+  raidBlue?: Graphics
 }
 
 type TwinkleAnim = {
@@ -275,6 +278,23 @@ function drawFarSkyline(parent: Container, w: number, horizonY: number, tier: nu
     const g = new Graphics()
     g.roundRect(-bw / 2, -bh, bw, bh, 3).fill({ color: 0x120a1c, alpha: 0.72 })
     g.rect(-bw / 2 + 2, -bh * 0.35, bw - 4, 3).fill({ color: C.neonBlue, alpha: 0.08 })
+    // Rooftop antenna + aircraft warning dot.
+    if (seed % 3 === 0) {
+      g.rect(-0.75, -bh - 7, 1.5, 7).fill({ color: 0x2a1a40, alpha: 0.8 })
+      g.circle(0, -bh - 8.5, 1.6).fill({ color: 0xf87171, alpha: 0.5 })
+    }
+    // Sparse lit window dots — reads as occupancy, not a flat slab.
+    const winCols = Math.max(1, Math.floor(bw / 14))
+    for (let k = 0; k < winCols * 2; k++) {
+      const ws = hash(seed + k * 733)
+      if (ws % 3 === 0) continue
+      const wx = -bw / 2 + 4 + ((ws >>> 3) % Math.max(6, bw - 10))
+      const wy = -bh * 0.15 - ((ws >>> 7) % Math.floor(bh * 0.7))
+      g.rect(wx, wy, 2.4, 3.2).fill({
+        color: ws % 5 === 0 ? 0xa5f3fc : 0xfde68a,
+        alpha: 0.1 + (ws % 4) * 0.05,
+      })
+    }
     g.x = x
     g.y = horizonY
     parent.addChild(g)
@@ -291,9 +311,27 @@ function drawMidSkyline(parent: Container, w: number, horizonY: number, tier: nu
     const x = (w / (n + 1)) * (i + 1) + ((seed % 27) - 13)
     const g = new Graphics()
     g.roundRect(-bw / 2, -bh, bw, bh, 2).fill({ color: 0x1e1235, alpha: 0.78 })
-    for (let k = 0; k < 3; k++) {
-      const wy = -bh * (0.25 + k * 0.2)
-      g.rect(-bw / 4, wy, 3, 4).fill({ color: 0xfde68a, alpha: 0.06 + (seed % 5) * 0.03 })
+    // Neon edge strip on some towers.
+    if (seed % 4 === 0) {
+      g.rect(-bw / 2, -bh, 1.6, bh).fill({
+        color: seed % 8 === 0 ? C.neonPink : C.neonBlue,
+        alpha: 0.22,
+      })
+    }
+    // Window grid — lit cells scattered per seed.
+    const cols = Math.max(2, Math.floor(bw / 11))
+    const rows = Math.max(3, Math.floor(bh / 16))
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const ws = hash(seed + r * 97 + c * 41)
+        if (ws % 4 === 0) continue
+        const wx = -bw / 2 + 3.5 + c * ((bw - 7) / Math.max(1, cols - 1))
+        const wy = -bh + 6 + r * ((bh - 10) / rows)
+        g.rect(wx, wy, 2.6, 3.4).fill({
+          color: ws % 6 === 0 ? 0xa5f3fc : 0xfde68a,
+          alpha: 0.09 + (ws % 5) * 0.045,
+        })
+      }
     }
     g.x = x
     g.y = horizonY + 4
@@ -342,13 +380,7 @@ function drawHazeSmoke(
 }
 
 /** Second haze bank — drifts opposite the first for parallax depth. */
-function drawSmog2(
-  g: Graphics,
-  w: number,
-  _h: number,
-  horizonY: number,
-  groundY: number,
-): void {
+function drawSmog2(g: Graphics, w: number, _h: number, horizonY: number, groundY: number): void {
   g.clear()
   const mid = horizonY + (groundY - horizonY) * 0.62
   for (let i = 0; i < 4; i++) {
@@ -690,6 +722,26 @@ function addTower(
   runtime.buildings.push({ root, kind: 'tower', towerWindows: wins, groundGlow })
 }
 
+/** Cop lights + caution glow attached to a raided business's building. */
+function markBuildingRaided(root: Container, b: BuildingAnim): void {
+  const tape = new Graphics()
+  tape.roundRect(-18, -6, 36, 5, 2).fill({ color: 0xfde047, alpha: 0.5 })
+  tape.rect(-12, -5, 3, 3).fill({ color: 0x0c0a14, alpha: 0.6 })
+  tape.rect(-4, -5, 3, 3).fill({ color: 0x0c0a14, alpha: 0.6 })
+  tape.rect(4, -5, 3, 3).fill({ color: 0x0c0a14, alpha: 0.6 })
+  const red = new Graphics()
+  red.circle(-7, -14, 5).fill({ color: C.strobeRed, alpha: 0.9 })
+  red.circle(-7, -14, 10).fill({ color: C.strobeRed, alpha: 0.18 })
+  const blue = new Graphics()
+  blue.circle(7, -14, 5).fill({ color: C.strobeBlue, alpha: 0.9 })
+  blue.circle(7, -14, 10).fill({ color: C.strobeBlue, alpha: 0.18 })
+  root.addChild(tape)
+  root.addChild(red)
+  root.addChild(blue)
+  b.raidRed = red
+  b.raidBlue = blue
+}
+
 function addGenericMid(parent: Container, w: number, groundY: number, businessSum: number): void {
   parent.removeChildren().forEach((c) => c.destroy({ children: true }))
   const n = Math.min(MAX_MID_DISTRICT_BUILDINGS, 4 + Math.floor(businessSum / 3))
@@ -700,7 +752,27 @@ function addGenericMid(parent: Container, w: number, groundY: number, businessSu
     const x = (w / (n + 1)) * (i + 1) + ((seed % 21) - 10)
     const g = new Graphics()
     g.roundRect(-bw / 2, -bh, bw, bh, 2).fill({ color: 0x251b3d, alpha: 0.82 })
-    g.rect(-bw / 4, -bh * 0.4, 4, 5).fill({ color: 0xfbbf24, alpha: 0.07 })
+    // Lit window rows + a neon shop sign at street level.
+    const cols = Math.max(2, Math.floor(bw / 12))
+    const rows = Math.max(2, Math.floor(bh / 15))
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const ws = hash(seed + r * 131 + c * 57)
+        if (ws % 3 === 0) continue
+        const wx = -bw / 2 + 3.5 + c * ((bw - 7) / Math.max(1, cols - 1))
+        const wy = -bh + 5 + r * ((bh - 14) / rows)
+        g.rect(wx, wy, 2.8, 3.6).fill({
+          color: ws % 7 === 0 ? 0xa5f3fc : 0xfbbf24,
+          alpha: 0.1 + (ws % 5) * 0.05,
+        })
+      }
+    }
+    if (seed % 2 === 0) {
+      g.roundRect(-bw / 3, -11, (bw * 2) / 3, 4, 2).fill({
+        color: seed % 4 === 0 ? C.neonPink : C.neonBlue,
+        alpha: 0.3,
+      })
+    }
     g.x = x
     g.y = groundY - 10
     parent.addChild(g)
@@ -936,14 +1008,6 @@ function drawHelicopter(
   })
 }
 
-/**
- * Painted backdrop mode: the neon-city art (street-bg__art / .street-bg CSS)
- * supplies sky, skyline, district and street. Pixi keeps only the additive
- * living FX — twinkles, searchlights, fog banks, light trails, embers,
- * particles, strobe wash, territory glow, helicopter.
- */
-const PAINTED_CITY = true
-
 export function rebuildEmpireScene(
   app: Application,
   layers: EmpireLayers,
@@ -960,20 +1024,18 @@ export function rebuildEmpireScene(
   const skylineEmphasis =
     snapshot.powerTier + Math.min(2, Math.floor(gt / 2)) + Math.min(4, snapshot.cityDepthTier)
 
-  if (!PAINTED_CITY) {
-    drawSky(layers.sky, w, h)
-    drawSkyBloom(layers.skyBloom, w, h, gt)
-    drawMoon(layers.moon, w, h, gt)
-    drawStars(layers.stars, w, h, gt)
-    drawFarSkyline(layers.farSkyline, w, horizonY, skylineEmphasis)
-    layers.farSkyline.filters = [getFarSkylineBlur()]
-    layers.farSkyline.alpha = 0.86
-    drawMidSkyline(layers.midSkyline, w, horizonY, skylineEmphasis)
-    layers.midSkyline.alpha = 0.92
-    addGenericMid(layers.midDistrict, w, groundY - 6, businessSum + gt * 4)
-    drawRoad(layers.road, w, h, groundY, snapshot.roadSpreadStage)
-    drawRoadSheen(layers.roadSheen, w, h, groundY)
-  }
+  drawSky(layers.sky, w, h)
+  drawSkyBloom(layers.skyBloom, w, h, gt)
+  drawMoon(layers.moon, w, h, gt)
+  drawStars(layers.stars, w, h, gt)
+  drawFarSkyline(layers.farSkyline, w, horizonY, skylineEmphasis)
+  layers.farSkyline.filters = [getFarSkylineBlur()]
+  layers.farSkyline.alpha = 0.86
+  drawMidSkyline(layers.midSkyline, w, horizonY, skylineEmphasis)
+  layers.midSkyline.alpha = 0.92
+  addGenericMid(layers.midDistrict, w, groundY - 6, businessSum + gt * 4)
+  drawRoad(layers.road, w, h, groundY, snapshot.roadSpreadStage)
+  drawRoadSheen(layers.roadSheen, w, h, groundY)
   buildTwinkles(layers.twinkles, w, horizonY, skylineEmphasis, runtime)
   buildSearchlights(layers.searchlights, w, horizonY, skylineEmphasis, runtime)
   drawFog(layers.fog, w, h, horizonY)
@@ -997,79 +1059,83 @@ export function rebuildEmpireScene(
   runtime.particlesNear = []
   // twinkles/beams/trails/embers/strobe reset inside their builders above
 
-  if (!PAINTED_CITY) {
-    const bCap = VISUAL_BUILDINGS_PER_BUSINESS_KIND
-    const buildingAlloc = allocateCounts(
-      snapshot.businessLevels,
-      BUSINESSES.map((b) => b.id),
-      bCap,
-      MAX_VISIBLE_BUSINESS_BUILDINGS,
-    )
-    const totalBuildSlots = Math.max(
-      1,
-      BUSINESSES.reduce((s, b) => s + (buildingAlloc[b.id] ?? 0), 0),
-    )
-    let buildSlot = 0
-    for (const b of BUSINESSES) {
-      const n = buildingAlloc[b.id] ?? 0
-      for (let i = 0; i < n; i++) {
-        const seed = hash(buildSlot * 131 + i * 17 + b.id.charCodeAt(0))
-        const t = (buildSlot + 1) / (totalBuildSlots + 1)
-        const rawLv = snapshot.businessLevels[b.id] ?? 0
-        const overflow = Math.max(0, rawLv - VISUAL_BUILDINGS_PER_BUSINESS_KIND)
-        const boost = Math.min(1, overflow * 0.04)
-        const x = 28 + t * (w - 56) + ((seed % 28) - 14)
-        buildSlot += 1
-        if (b.id === 'stall') addStall(layers.buildings, x, groundY, seed, runtime)
-        else if (b.id === 'laundry') addLaundry(layers.buildings, x, groundY, seed, runtime)
-        else if (b.id === 'club') addClub(layers.buildings, x, groundY, seed, runtime)
-        else addTower(layers.buildings, x, groundY, seed, runtime)
-        const lastB = runtime.buildings[runtime.buildings.length - 1]
-        if (lastB?.root) {
-          lastB.root.alpha = 0.88 + boost * 0.12
-        }
+  const bCap = VISUAL_BUILDINGS_PER_BUSINESS_KIND
+  const buildingAlloc = allocateCounts(
+    snapshot.businessLevels,
+    BUSINESSES.map((b) => b.id),
+    bCap,
+    MAX_VISIBLE_BUSINESS_BUILDINGS,
+  )
+  const totalBuildSlots = Math.max(
+    1,
+    BUSINESSES.reduce((s, b) => s + (buildingAlloc[b.id] ?? 0), 0),
+  )
+  let buildSlot = 0
+  let raidMarked = false
+  for (const b of BUSINESSES) {
+    const n = buildingAlloc[b.id] ?? 0
+    for (let i = 0; i < n; i++) {
+      const seed = hash(buildSlot * 131 + i * 17 + b.id.charCodeAt(0))
+      const t = (buildSlot + 1) / (totalBuildSlots + 1)
+      const rawLv = snapshot.businessLevels[b.id] ?? 0
+      const overflow = Math.max(0, rawLv - VISUAL_BUILDINGS_PER_BUSINESS_KIND)
+      const boost = Math.min(1, overflow * 0.04)
+      const x = 28 + t * (w - 56) + ((seed % 28) - 14)
+      buildSlot += 1
+      if (b.id === 'stall') addStall(layers.buildings, x, groundY, seed, runtime)
+      else if (b.id === 'laundry') addLaundry(layers.buildings, x, groundY, seed, runtime)
+      else if (b.id === 'club') addClub(layers.buildings, x, groundY, seed, runtime)
+      else addTower(layers.buildings, x, groundY, seed, runtime)
+      const lastB = runtime.buildings[runtime.buildings.length - 1]
+      if (lastB?.root) {
+        lastB.root.alpha = 0.88 + boost * 0.12
+      }
+      if (b.id === snapshot.raidedBusinessId && lastB && !raidMarked) {
+        markBuildingRaided(lastB.root, lastB)
+        raidMarked = true
       }
     }
+  }
 
-    const rCap = VISUAL_UNITS_PER_RECRUIT_KIND
-    const recruitAlloc = allocateCounts(
-      snapshot.recruitLevels,
-      RECRUITS.map((r) => r.id),
-      rCap,
-      MAX_VISIBLE_RECRUIT_UNITS_TOTAL,
-    )
-    let ux = 0
-    for (const r of RECRUITS) {
-      const n = recruitAlloc[r.id] ?? 0
-      const kind = recruitKind(r.id)
-      const rawLvR = snapshot.recruitLevels[r.id] ?? 0
-      const overflowR = Math.max(0, rawLvR - VISUAL_UNITS_PER_RECRUIT_KIND)
-      const rowBoost = Math.min(1, overflowR * 0.05)
-      for (let i = 0; i < n; i++) {
-        const seed = hash(ux * 311 + i * 53 + r.id.length * 97)
-        const spread = w * 0.85
-        let x = 40 + ((ux * 47 + seed) % Math.floor(spread))
-        if (kind === 'lookout') {
-          x = seed % 2 === 0 ? 28 + (seed % 40) : w - 28 - (seed % 40)
-        }
-        ux += 1
-        runtime.units.push(spawnUnit(layers.units, kind, x, groundY, seed, rowBoost))
+  const rCap = VISUAL_UNITS_PER_RECRUIT_KIND
+  const recruitAlloc = allocateCounts(
+    snapshot.recruitLevels,
+    RECRUITS.map((r) => r.id),
+    rCap,
+    MAX_VISIBLE_RECRUIT_UNITS_TOTAL,
+  )
+  let ux = 0
+  for (const r of RECRUITS) {
+    const n = recruitAlloc[r.id] ?? 0
+    const kind = recruitKind(r.id)
+    const rawLvR = snapshot.recruitLevels[r.id] ?? 0
+    const overflowR = Math.max(0, rawLvR - VISUAL_UNITS_PER_RECRUIT_KIND)
+    const rowBoost = Math.min(1, overflowR * 0.05)
+    for (let i = 0; i < n; i++) {
+      const seed = hash(ux * 311 + i * 53 + r.id.length * 97)
+      const spread = w * 0.85
+      let x = 40 + ((ux * 47 + seed) % Math.floor(spread))
+      if (kind === 'lookout') {
+        x = seed % 2 === 0 ? 28 + (seed % 40) : w - 28 - (seed % 40)
       }
+      ux += 1
+      runtime.units.push(spawnUnit(layers.units, kind, x, groundY, seed, rowBoost))
     }
+  }
 
-    for (let a = 0; a < AMBIENT_RUNNERS_COUNT; a++) {
-      const seed = hash(8800 + a * 199 + gt * 41)
-      const spread = Math.max(80, w - 100)
-      const x = 48 + ((seed * 97 + a * 131) % spread)
-      runtime.units.push(spawnUnit(layers.units, 'runner', x, groundY, seed ^ 0xbeef))
-    }
+  for (let a = 0; a < AMBIENT_RUNNERS_COUNT; a++) {
+    const seed = hash(8800 + a * 199 + gt * 41)
+    const spread = Math.max(80, w - 100)
+    const x = 48 + ((seed * 97 + a * 131) % spread)
+    runtime.units.push(spawnUnit(layers.units, 'runner', x, groundY, seed ^ 0xbeef))
+  }
 
-    const nCars = Math.min(
-      MAX_VEHICLES_CAP,
-      2 + snapshot.powerTier + Math.floor(snapshot.power / 180) + Math.min(3, Math.floor(gt / 2)),
-    )
-    const patrolSlots = Math.min(2, 1 + (gt >= 3 ? 1 : 0))
-    for (let i = 0; i < nCars; i++) {
+  const nCars = Math.min(
+    MAX_VEHICLES_CAP,
+    2 + snapshot.powerTier + Math.floor(snapshot.power / 180) + Math.min(3, Math.floor(gt / 2)),
+  )
+  const patrolSlots = Math.min(2, 1 + (gt >= 3 ? 1 : 0))
+  for (let i = 0; i < nCars; i++) {
     const seed = hash(i * 919 + snapshot.powerTier * 41)
     const car = new Graphics()
     const cw = 28 + (seed % 14)
@@ -1105,7 +1171,6 @@ export function rebuildEmpireScene(
       lightL,
       lightR,
     })
-    }
   }
 
   const vp = snapshot.visualPressureBucket ?? 0
@@ -1253,8 +1318,7 @@ export function tickEmpire(
   }
 
   for (const beam of runtime.beams) {
-    beam.g.rotation =
-      beam.dir * (0.5 + Math.sin(t * beam.speed + beam.phase) * 0.42)
+    beam.g.rotation = beam.dir * (0.5 + Math.sin(t * beam.speed + beam.phase) * 0.42)
     beam.g.alpha = 0.8 + Math.sin(t * 0.00041 + beam.phase) * 0.2
   }
 
@@ -1366,6 +1430,13 @@ export function tickEmpire(
     // Fade as they rise.
     const rise = Math.min(1, Math.max(0, (h - p.y) / Math.max(1, h - horizonY)))
     p.g.alpha = p.a * (1 - rise * 0.75) * (0.7 + Math.sin(t * 0.006 + p.x) * 0.3)
+  }
+
+  // Raid strobes on the seized building — harder flash than the ambient wash.
+  const raidPhase = Math.sin(t * 0.018)
+  for (const b of runtime.buildings) {
+    if (b.raidRed) b.raidRed.alpha = raidPhase > 0 ? 1 : 0.12
+    if (b.raidBlue) b.raidBlue.alpha = raidPhase > 0 ? 0.12 : 1
   }
 
   // Heat-driven police strobe wash.

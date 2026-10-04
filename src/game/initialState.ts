@@ -50,6 +50,8 @@ export function createInitialState(): GameState {
     heatCapGraceEndTick: 0,
     heatGracePeriodActive: false,
     heatMaxDebuffKind: null,
+    raidedBusinessId: null,
+    raidEndTick: 0,
     heatWarningLatch: false,
     heatWarningSfxNonce: 0,
     lastManualHustleTick: 0,
