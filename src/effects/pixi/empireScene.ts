@@ -936,6 +936,14 @@ function drawHelicopter(
   })
 }
 
+/**
+ * Painted backdrop mode: the neon-city art (street-bg__art / .street-bg CSS)
+ * supplies sky, skyline, district and street. Pixi keeps only the additive
+ * living FX — twinkles, searchlights, fog banks, light trails, embers,
+ * particles, strobe wash, territory glow, helicopter.
+ */
+const PAINTED_CITY = true
+
 export function rebuildEmpireScene(
   app: Application,
   layers: EmpireLayers,
@@ -952,27 +960,29 @@ export function rebuildEmpireScene(
   const skylineEmphasis =
     snapshot.powerTier + Math.min(2, Math.floor(gt / 2)) + Math.min(4, snapshot.cityDepthTier)
 
-  drawSky(layers.sky, w, h)
-  drawSkyBloom(layers.skyBloom, w, h, gt)
-  drawMoon(layers.moon, w, h, gt)
-  drawStars(layers.stars, w, h, gt)
-  drawFarSkyline(layers.farSkyline, w, horizonY, skylineEmphasis)
-  layers.farSkyline.filters = [getFarSkylineBlur()]
-  layers.farSkyline.alpha = 0.86
-  drawMidSkyline(layers.midSkyline, w, horizonY, skylineEmphasis)
-  layers.midSkyline.alpha = 0.92
+  if (!PAINTED_CITY) {
+    drawSky(layers.sky, w, h)
+    drawSkyBloom(layers.skyBloom, w, h, gt)
+    drawMoon(layers.moon, w, h, gt)
+    drawStars(layers.stars, w, h, gt)
+    drawFarSkyline(layers.farSkyline, w, horizonY, skylineEmphasis)
+    layers.farSkyline.filters = [getFarSkylineBlur()]
+    layers.farSkyline.alpha = 0.86
+    drawMidSkyline(layers.midSkyline, w, horizonY, skylineEmphasis)
+    layers.midSkyline.alpha = 0.92
+    addGenericMid(layers.midDistrict, w, groundY - 6, businessSum + gt * 4)
+    drawRoad(layers.road, w, h, groundY, snapshot.roadSpreadStage)
+    drawRoadSheen(layers.roadSheen, w, h, groundY)
+  }
   buildTwinkles(layers.twinkles, w, horizonY, skylineEmphasis, runtime)
   buildSearchlights(layers.searchlights, w, horizonY, skylineEmphasis, runtime)
   drawFog(layers.fog, w, h, horizonY)
   drawFogFront(layers.fogFront, w, h, horizonY, groundY)
   drawHazeSmoke(layers.hazeSmoke, w, h, horizonY, groundY)
   drawSmog2(layers.smog2, w, h, horizonY, groundY)
-  addGenericMid(layers.midDistrict, w, groundY - 6, businessSum + gt * 4)
   buildTrails(layers.trails, w, h, groundY, runtime)
   buildEmbers(layers.embers, w, h, groundY, gt, runtime)
   buildStrobe(layers.strobe, w, h)
-  drawRoad(layers.road, w, h, groundY, snapshot.roadSpreadStage)
-  drawRoadSheen(layers.roadSheen, w, h, groundY)
 
   layers.buildings.removeChildren().forEach((c) => c.destroy({ children: true }))
   layers.units.removeChildren().forEach((c) => c.destroy({ children: true }))
@@ -987,78 +997,79 @@ export function rebuildEmpireScene(
   runtime.particlesNear = []
   // twinkles/beams/trails/embers/strobe reset inside their builders above
 
-  const bCap = VISUAL_BUILDINGS_PER_BUSINESS_KIND
-  const buildingAlloc = allocateCounts(
-    snapshot.businessLevels,
-    BUSINESSES.map((b) => b.id),
-    bCap,
-    MAX_VISIBLE_BUSINESS_BUILDINGS,
-  )
-  const totalBuildSlots = Math.max(
-    1,
-    BUSINESSES.reduce((s, b) => s + (buildingAlloc[b.id] ?? 0), 0),
-  )
-  let buildSlot = 0
-  for (const b of BUSINESSES) {
-    const n = buildingAlloc[b.id] ?? 0
-    for (let i = 0; i < n; i++) {
-      const seed = hash(buildSlot * 131 + i * 17 + b.id.charCodeAt(0))
-      const t = (buildSlot + 1) / (totalBuildSlots + 1)
-      const rawLv = snapshot.businessLevels[b.id] ?? 0
-      const overflow = Math.max(0, rawLv - VISUAL_BUILDINGS_PER_BUSINESS_KIND)
-      const boost = Math.min(1, overflow * 0.04)
-      const x = 28 + t * (w - 56) + ((seed % 28) - 14)
-      buildSlot += 1
-      if (b.id === 'stall') addStall(layers.buildings, x, groundY, seed, runtime)
-      else if (b.id === 'laundry') addLaundry(layers.buildings, x, groundY, seed, runtime)
-      else if (b.id === 'club') addClub(layers.buildings, x, groundY, seed, runtime)
-      else addTower(layers.buildings, x, groundY, seed, runtime)
-      const lastB = runtime.buildings[runtime.buildings.length - 1]
-      if (lastB?.root) {
-        lastB.root.alpha = 0.88 + boost * 0.12
+  if (!PAINTED_CITY) {
+    const bCap = VISUAL_BUILDINGS_PER_BUSINESS_KIND
+    const buildingAlloc = allocateCounts(
+      snapshot.businessLevels,
+      BUSINESSES.map((b) => b.id),
+      bCap,
+      MAX_VISIBLE_BUSINESS_BUILDINGS,
+    )
+    const totalBuildSlots = Math.max(
+      1,
+      BUSINESSES.reduce((s, b) => s + (buildingAlloc[b.id] ?? 0), 0),
+    )
+    let buildSlot = 0
+    for (const b of BUSINESSES) {
+      const n = buildingAlloc[b.id] ?? 0
+      for (let i = 0; i < n; i++) {
+        const seed = hash(buildSlot * 131 + i * 17 + b.id.charCodeAt(0))
+        const t = (buildSlot + 1) / (totalBuildSlots + 1)
+        const rawLv = snapshot.businessLevels[b.id] ?? 0
+        const overflow = Math.max(0, rawLv - VISUAL_BUILDINGS_PER_BUSINESS_KIND)
+        const boost = Math.min(1, overflow * 0.04)
+        const x = 28 + t * (w - 56) + ((seed % 28) - 14)
+        buildSlot += 1
+        if (b.id === 'stall') addStall(layers.buildings, x, groundY, seed, runtime)
+        else if (b.id === 'laundry') addLaundry(layers.buildings, x, groundY, seed, runtime)
+        else if (b.id === 'club') addClub(layers.buildings, x, groundY, seed, runtime)
+        else addTower(layers.buildings, x, groundY, seed, runtime)
+        const lastB = runtime.buildings[runtime.buildings.length - 1]
+        if (lastB?.root) {
+          lastB.root.alpha = 0.88 + boost * 0.12
+        }
       }
     }
-  }
 
-  const rCap = VISUAL_UNITS_PER_RECRUIT_KIND
-  const recruitAlloc = allocateCounts(
-    snapshot.recruitLevels,
-    RECRUITS.map((r) => r.id),
-    rCap,
-    MAX_VISIBLE_RECRUIT_UNITS_TOTAL,
-  )
-  let ux = 0
-  for (const r of RECRUITS) {
-    const n = recruitAlloc[r.id] ?? 0
-    const kind = recruitKind(r.id)
-    const rawLvR = snapshot.recruitLevels[r.id] ?? 0
-    const overflowR = Math.max(0, rawLvR - VISUAL_UNITS_PER_RECRUIT_KIND)
-    const rowBoost = Math.min(1, overflowR * 0.05)
-    for (let i = 0; i < n; i++) {
-      const seed = hash(ux * 311 + i * 53 + r.id.length * 97)
-      const spread = w * 0.85
-      let x = 40 + ((ux * 47 + seed) % Math.floor(spread))
-      if (kind === 'lookout') {
-        x = seed % 2 === 0 ? 28 + (seed % 40) : w - 28 - (seed % 40)
+    const rCap = VISUAL_UNITS_PER_RECRUIT_KIND
+    const recruitAlloc = allocateCounts(
+      snapshot.recruitLevels,
+      RECRUITS.map((r) => r.id),
+      rCap,
+      MAX_VISIBLE_RECRUIT_UNITS_TOTAL,
+    )
+    let ux = 0
+    for (const r of RECRUITS) {
+      const n = recruitAlloc[r.id] ?? 0
+      const kind = recruitKind(r.id)
+      const rawLvR = snapshot.recruitLevels[r.id] ?? 0
+      const overflowR = Math.max(0, rawLvR - VISUAL_UNITS_PER_RECRUIT_KIND)
+      const rowBoost = Math.min(1, overflowR * 0.05)
+      for (let i = 0; i < n; i++) {
+        const seed = hash(ux * 311 + i * 53 + r.id.length * 97)
+        const spread = w * 0.85
+        let x = 40 + ((ux * 47 + seed) % Math.floor(spread))
+        if (kind === 'lookout') {
+          x = seed % 2 === 0 ? 28 + (seed % 40) : w - 28 - (seed % 40)
+        }
+        ux += 1
+        runtime.units.push(spawnUnit(layers.units, kind, x, groundY, seed, rowBoost))
       }
-      ux += 1
-      runtime.units.push(spawnUnit(layers.units, kind, x, groundY, seed, rowBoost))
     }
-  }
 
-  for (let a = 0; a < AMBIENT_RUNNERS_COUNT; a++) {
-    const seed = hash(8800 + a * 199 + gt * 41)
-    const spread = Math.max(80, w - 100)
-    const x = 48 + ((seed * 97 + a * 131) % spread)
-    runtime.units.push(spawnUnit(layers.units, 'runner', x, groundY, seed ^ 0xbeef))
-  }
+    for (let a = 0; a < AMBIENT_RUNNERS_COUNT; a++) {
+      const seed = hash(8800 + a * 199 + gt * 41)
+      const spread = Math.max(80, w - 100)
+      const x = 48 + ((seed * 97 + a * 131) % spread)
+      runtime.units.push(spawnUnit(layers.units, 'runner', x, groundY, seed ^ 0xbeef))
+    }
 
-  const nCars = Math.min(
-    MAX_VEHICLES_CAP,
-    2 + snapshot.powerTier + Math.floor(snapshot.power / 180) + Math.min(3, Math.floor(gt / 2)),
-  )
-  const patrolSlots = Math.min(2, 1 + (gt >= 3 ? 1 : 0))
-  for (let i = 0; i < nCars; i++) {
+    const nCars = Math.min(
+      MAX_VEHICLES_CAP,
+      2 + snapshot.powerTier + Math.floor(snapshot.power / 180) + Math.min(3, Math.floor(gt / 2)),
+    )
+    const patrolSlots = Math.min(2, 1 + (gt >= 3 ? 1 : 0))
+    for (let i = 0; i < nCars; i++) {
     const seed = hash(i * 919 + snapshot.powerTier * 41)
     const car = new Graphics()
     const cw = 28 + (seed % 14)
@@ -1094,6 +1105,7 @@ export function rebuildEmpireScene(
       lightL,
       lightR,
     })
+    }
   }
 
   const vp = snapshot.visualPressureBucket ?? 0

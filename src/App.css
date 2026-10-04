@@ -122,6 +122,30 @@
   z-index: 0;
   pointer-events: none;
   opacity: 0.97;
+  background: #06060f url('/shop/city-bg.jpg') center bottom / cover no-repeat;
+}
+
+/* Painted backdrop gets a slow cinematic drift so the scene breathes. */
+.street-bg__art {
+  position: absolute;
+  inset: -3%;
+  background: url('/shop/city-bg.jpg') center bottom / cover no-repeat;
+  animation: city-drift 46s ease-in-out infinite alternate;
+}
+
+@keyframes city-drift {
+  0% {
+    transform: scale(1.02) translate(0, 0);
+  }
+  100% {
+    transform: scale(1.07) translate(-1.2%, -0.8%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .street-bg__art {
+    animation: none;
+  }
 }
 
 .danger-feedback-overlay {

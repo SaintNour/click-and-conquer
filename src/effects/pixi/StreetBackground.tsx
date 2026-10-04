@@ -150,5 +150,9 @@ export function StreetBackground({ state, empireVisualKey }: Props) {
     // empireVisualKey ensures this runs when recruit/business/territory/power-tier changes
   }, [empireVisualKey])
 
-  return <div className="street-bg" ref={hostRef} aria-hidden />
+  return (
+    <div className="street-bg" ref={hostRef} aria-hidden>
+      <div className="street-bg__art" />
+    </div>
+  )
 }
