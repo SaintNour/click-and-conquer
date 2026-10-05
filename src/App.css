@@ -67,6 +67,13 @@
   background: transparent;
 }
 
+/* Google marks the <ins> after a fill attempt — collapse unfilled units so they
+ * never render a blank white box over the scene. */
+.ad-left ins.adsbygoogle[data-ad-status='unfilled'],
+.ad-right ins.adsbygoogle[data-ad-status='unfilled'] {
+  display: none !important;
+}
+
 @media (max-width: 1024px) {
   .app-layout__ad {
     display: none;

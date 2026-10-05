@@ -9,8 +9,8 @@ import {
   mountEmpireLayers,
   rebuildEmpireScene,
   tickEmpire,
-} from './empireScene'
-import { loadSceneArt } from './sceneArt'
+} from './streetScene'
+import { loadSceneArt } from './streetArt'
 
 type Props = {
   state: GameState
