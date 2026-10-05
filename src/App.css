@@ -497,8 +497,25 @@
   height: 100%;
   overflow-y: auto;
   overflow-x: hidden;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   padding-right: 0.25rem;
   scrollbar-gutter: stable;
+}
+
+/* Inner scrollers: don't chain overscroll up to the page (pull-to-refresh /
+   outer bounce on touch). */
+.left-sidebar__event-log-list,
+.sidebar-acc__body-inner .territory-panel--embedded .territory-list,
+.minor-life-event__body,
+.gangs-modal__scroll,
+.city-map__rival-list,
+.achievements-modal,
+.house-item-row,
+.settings-modal,
+.character-modal {
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* —— Left column accordion —— */
@@ -1826,6 +1843,8 @@
   max-height: 100%;
   overflow-x: hidden;
   overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   min-width: 0;
   box-shadow:
     var(--shadow),
@@ -6417,15 +6436,25 @@
 }
 
 @media (pointer: coarse) {
+  /* Apple HIG: ≥44px touch targets. */
   .shop-card-row__bulkBtn {
-    min-height: 40px;
-    min-width: 2.5rem;
+    min-height: 44px;
+    min-width: 2.75rem;
     padding: 0.22rem 0.42rem;
+    touch-action: manipulation;
   }
 
   .app__release-btn {
-    min-height: 40px;
-    min-width: 40px;
+    min-height: 44px;
+    min-width: 44px;
+    touch-action: manipulation;
+  }
+
+  /* iOS Safari zooms the page when focusing a field under 16px. */
+  .save-modal__textarea,
+  input,
+  select {
+    font-size: 16px;
   }
 }
 

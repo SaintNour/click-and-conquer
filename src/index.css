@@ -70,6 +70,9 @@ body {
   -webkit-user-select: none;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
+  /* Double-tap anywhere must not zoom — game UI, not a document. */
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
   background:
     radial-gradient(ellipse 120% 85% at 50% -18%, rgba(109, 40, 217, 0.42), transparent 52%),
     radial-gradient(ellipse 75% 55% at 95% 35%, rgba(55, 48, 163, 0.35), transparent 48%),
