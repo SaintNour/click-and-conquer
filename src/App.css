@@ -125,6 +125,56 @@
   background: #06060f;
 }
 
+/* Cinematic grade over the painted scene: vignette + film grain + subtle
+   chromatic warm/cool split. Pure CSS — zero render cost in the WebGL loop. */
+.street-bg::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 130% 90% at 50% 42%, transparent 55%, rgba(2, 2, 8, 0.5) 100%),
+    linear-gradient(180deg, rgba(2, 2, 10, 0.25) 0%, transparent 18%, transparent 78%, rgba(1, 1, 6, 0.45) 100%);
+  mix-blend-mode: multiply;
+}
+
+.street-bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0.055;
+  background-image: repeating-conic-gradient(rgba(255, 255, 255, 0.9) 0% 0.0001%, transparent 0.0002% 0.0004%);
+  background-size: 3px 3px;
+  animation: street-grain 0.9s steps(4) infinite;
+}
+
+@keyframes street-grain {
+  0% {
+    transform: translate(0, 0);
+  }
+  25% {
+    transform: translate(-1px, 1px);
+  }
+  50% {
+    transform: translate(1px, -1px);
+  }
+  75% {
+    transform: translate(1px, 1px);
+  }
+  100% {
+    transform: translate(-1px, -1px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .street-bg::after {
+    animation: none;
+  }
+}
+
 .danger-feedback-overlay {
   position: fixed;
   inset: 0;

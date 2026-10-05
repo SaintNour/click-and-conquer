@@ -1,4 +1,5 @@
-import { Application, BlurFilter, Container, Graphics } from 'pixi.js'
+import { Application, BlurFilter, Container, Graphics, Sprite, Texture, TilingSprite } from 'pixi.js'
+import { businessTex, sceneTex } from './sceneArt'
 import { BUSINESSES } from '../../data/businesses'
 import { RECRUITS } from '../../data/recruits'
 import type { EmpireSnapshot } from '../../game/visualMetrics'
@@ -107,7 +108,7 @@ type UnitAnim = {
 }
 
 type VehicleAnim = {
-  g: Graphics
+  g: Container
   y: number
   speed: number
   w: number
@@ -265,6 +266,23 @@ function drawStars(g: Graphics, w: number, h: number, growthTier: number): void 
     const tw = 0.35 + ((seed >> 3) % 5) * 0.06
     g.circle(sx, y, s).fill({ color: 0xfffbeb, alpha: tw })
   }
+}
+
+/** Painted skyline strip tiled across the horizon; baseline anchored at y. */
+function drawSkylineStrip(
+  parent: Container,
+  tex: Texture,
+  w: number,
+  baselineY: number,
+  targetH: number,
+): void {
+  parent.removeChildren().forEach((c) => c.destroy({ children: true }))
+  const s = targetH / tex.height
+  const tile = new TilingSprite({ texture: tex, width: w + 160, height: targetH })
+  tile.tileScale.set(s, s)
+  tile.x = -80
+  tile.y = baselineY - targetH
+  parent.addChild(tile)
 }
 
 function drawFarSkyline(parent: Container, w: number, horizonY: number, tier: number): void {
@@ -722,6 +740,80 @@ function addTower(
   runtime.buildings.push({ root, kind: 'tower', towerWindows: wins, groundGlow })
 }
 
+/** Target sprite heights per business kind (scene px at baseline scale). */
+const BLD_H: Record<string, number> = {
+  stall: 30,
+  laundry: 38,
+  club: 52,
+  tower: 92,
+  garage: 34,
+  warehouse: 30,
+  casino: 60,
+  logistics_hub: 40,
+  skylot_plaza: 80,
+  charter_row: 28,
+}
+
+/** Painted building sprite anchored bottom-center; false when no texture. */
+function addBusinessSprite(
+  parent: Container,
+  x: number,
+  groundY: number,
+  seed: number,
+  runtime: EmpireRuntime,
+  kind: string,
+): boolean {
+  const tex = businessTex(kind)
+  if (!tex) return false
+  const root = new Container()
+  const h = (BLD_H[kind] ?? 60) * (0.88 + (seed % 6) * 0.05)
+  const s = h / tex.height
+  const spr = new Sprite(tex)
+  spr.anchor.set(0.5, 1)
+  // Occasional horizontal mirror keeps a row of same-kind buildings varied.
+  spr.scale.set(seed % 7 === 0 ? -s : s, s)
+  const glow = new Graphics()
+  glow
+    .ellipse(0, -4, tex.width * s * 0.5, 9)
+    .fill({ color: kind === 'club' || kind === 'casino' ? C.neonPink : C.powerPurple, alpha: 0.12 })
+  root.addChild(glow)
+  root.addChild(spr)
+  root.x = x
+  root.y = groundY
+  parent.addChild(root)
+  runtime.buildings.push({ root, kind, groundGlow: glow })
+  return true
+}
+
+/** Dark-tinted filler sprites for the mid-district depth layer. */
+function addMidDistrictSprites(
+  parent: Container,
+  w: number,
+  groundY: number,
+  businessSum: number,
+): boolean {
+  const pool = ['warehouse', 'garage', 'tower', 'laundry', 'club']
+  const n = Math.min(MAX_MID_DISTRICT_BUILDINGS, 4 + Math.floor(businessSum / 3))
+  let placed = 0
+  for (let i = 0; i < n; i++) {
+    const seed = hash(i * 4441 + businessSum)
+    const tex = businessTex(pool[seed % pool.length]!)
+    if (!tex) continue
+    const th = 34 + (seed % 34)
+    const spr = new Sprite(tex)
+    const s = th / tex.height
+    spr.anchor.set(0.5, 1)
+    spr.scale.set(seed % 3 === 0 ? -s : s, s)
+    spr.tint = 0x8674b8
+    spr.alpha = 0.85
+    spr.x = (w / (n + 1)) * (i + 1) + ((seed % 21) - 10)
+    spr.y = groundY - 10
+    parent.addChild(spr)
+    placed++
+  }
+  return placed > 0
+}
+
 /** Cop lights + caution glow attached to a raided business's building. */
 function markBuildingRaided(root: Container, b: BuildingAnim): void {
   const tape = new Graphics()
@@ -796,11 +888,12 @@ function spawnUnit(
 
   if (kind === 'lookout') {
     const pole = new Graphics()
-    pole.rect(-1, -28, 2, 28).fill({ color: 0x4b5563, alpha: 0.8 })
+    pole.rect(-1, -28, 2, 28).fill({ color: 0x2a2f3d, alpha: 0.9 })
     const body = new Graphics()
-    body.roundRect(-3, -32, 6, 10, 2).fill({ color: C.powerPurple, alpha: 0.55 })
+    body.roundRect(-3, -32, 6, 10, 2).fill({ color: 0x151022, alpha: 0.92 })
     const head = new Graphics()
-    head.circle(0, -36, 3.5).fill({ color: 0xe9d5ff, alpha: 0.5 })
+    head.circle(0, -36, 3.5).fill({ color: 0x1b1530, alpha: 0.9 })
+    head.circle(-0.9, -36.8, 1.1).fill({ color: C.powerPurple, alpha: 0.4 })
     root.addChild(pole)
     root.addChild(body)
     root.addChild(head)
@@ -828,9 +921,10 @@ function spawnUnit(
 
   if (kind === 'runner') {
     const body = new Graphics()
-    body.roundRect(-2.5, -9, 5, 11, 2).fill({ color: C.moneyGreen, alpha: 0.82 })
+    body.roundRect(-2.5, -9, 5, 11, 2).fill({ color: 0x0f1a16, alpha: 0.94 })
+    body.rect(1.8, -8, 0.8, 9).fill({ color: C.moneyGreen, alpha: 0.35 })
     const head = new Graphics()
-    head.circle(0, -12, 3).fill({ color: 0xd1fae5, alpha: 0.65 })
+    head.circle(0, -12, 3).fill({ color: 0x14201a, alpha: 0.9 })
     root.addChild(body)
     root.addChild(head)
     root.x = x
@@ -858,11 +952,12 @@ function spawnUnit(
 
   if (kind === 'muscle') {
     const body = new Graphics()
-    body.roundRect(-6, -12, 12, 14, 3).fill({ color: 0x1f2937, alpha: 0.96 })
+    body.roundRect(-6, -12, 12, 14, 3).fill({ color: 0x11141f, alpha: 0.96 })
     const vest = new Graphics()
-    vest.roundRect(-6.5, -11, 13, 12, 2).stroke({ width: 1, color: 0x6b7280, alpha: 0.5 })
+    vest.roundRect(-6.5, -11, 13, 12, 2).stroke({ width: 1, color: 0x4b5563, alpha: 0.55 })
     const head = new Graphics()
-    head.circle(0, -16, 4.5).fill({ color: 0xe5e7eb, alpha: 0.62 })
+    head.circle(0, -16, 4.5).fill({ color: 0x1a2030, alpha: 0.9 })
+    head.circle(-1.4, -17, 1.4).fill({ color: 0x93a4c4, alpha: 0.35 })
     root.addChild(body)
     root.addChild(vest)
     root.addChild(head)
@@ -892,11 +987,12 @@ function spawnUnit(
   const glow = new Graphics()
   glow.circle(0, -8, 16).fill({ color: C.powerPurple, alpha: 0.2 })
   const body = new Graphics()
-  body.roundRect(-4, -11, 8, 13, 2).fill({ color: 0xfae8ff, alpha: 0.35 })
+  body.roundRect(-4, -11, 8, 13, 2).fill({ color: 0x171226, alpha: 0.92 })
   const coat = new Graphics()
   coat.roundRect(-5, -10, 10, 12, 2).stroke({ width: 1, color: C.neonBlue, alpha: 0.5 })
   const head = new Graphics()
-  head.circle(0, -15, 3.2).fill({ color: 0xffffff, alpha: 0.45 })
+  head.circle(0, -15, 3.2).fill({ color: 0x1e1a33, alpha: 0.9 })
+  head.circle(-1, -15.8, 1).fill({ color: C.neonBlue, alpha: 0.45 })
   root.addChild(glow)
   root.addChild(body)
   root.addChild(coat)
@@ -1024,16 +1120,41 @@ export function rebuildEmpireScene(
   const skylineEmphasis =
     snapshot.powerTier + Math.min(2, Math.floor(gt / 2)) + Math.min(4, snapshot.cityDepthTier)
 
+  layers.sky.removeChildren().forEach((c) => c.destroy({ children: true }))
   drawSky(layers.sky, w, h)
+  const skyTex = sceneTex('sky_pano')
+  if (skyTex) {
+    const pano = new Sprite(skyTex)
+    // Cover-fit with ~6% overscan so the slow drift never reveals an edge.
+    const s = Math.max((w * 1.12) / skyTex.width, h / skyTex.height)
+    pano.scale.set(s)
+    pano.x = (w - skyTex.width * s) / 2
+    pano.y = 0
+    layers.sky.addChild(pano)
+  }
   drawSkyBloom(layers.skyBloom, w, h, gt)
-  drawMoon(layers.moon, w, h, gt)
+  if (skyTex) layers.moon.clear() // pano has a moon baked in
+  else drawMoon(layers.moon, w, h, gt)
   drawStars(layers.stars, w, h, gt)
-  drawFarSkyline(layers.farSkyline, w, horizonY, skylineEmphasis)
+  const farTex = sceneTex('skyline_far')
+  if (farTex) {
+    drawSkylineStrip(layers.farSkyline, farTex, w, horizonY, Math.max(110, h * 0.17))
+  } else {
+    drawFarSkyline(layers.farSkyline, w, horizonY, skylineEmphasis)
+  }
   layers.farSkyline.filters = [getFarSkylineBlur()]
   layers.farSkyline.alpha = 0.86
-  drawMidSkyline(layers.midSkyline, w, horizonY, skylineEmphasis)
+  const midTex = sceneTex('skyline_mid')
+  if (midTex) {
+    drawSkylineStrip(layers.midSkyline, midTex, w, horizonY + 4, Math.max(140, h * 0.21))
+  } else {
+    drawMidSkyline(layers.midSkyline, w, horizonY, skylineEmphasis)
+  }
   layers.midSkyline.alpha = 0.92
-  addGenericMid(layers.midDistrict, w, groundY - 6, businessSum + gt * 4)
+  layers.midDistrict.removeChildren().forEach((c) => c.destroy({ children: true }))
+  if (!addMidDistrictSprites(layers.midDistrict, w, groundY - 6, businessSum + gt * 4)) {
+    addGenericMid(layers.midDistrict, w, groundY - 6, businessSum + gt * 4)
+  }
   drawRoad(layers.road, w, h, groundY, snapshot.roadSpreadStage)
   drawRoadSheen(layers.roadSheen, w, h, groundY)
   buildTwinkles(layers.twinkles, w, horizonY, skylineEmphasis, runtime)
@@ -1082,10 +1203,12 @@ export function rebuildEmpireScene(
       const boost = Math.min(1, overflow * 0.04)
       const x = 28 + t * (w - 56) + ((seed % 28) - 14)
       buildSlot += 1
-      if (b.id === 'stall') addStall(layers.buildings, x, groundY, seed, runtime)
-      else if (b.id === 'laundry') addLaundry(layers.buildings, x, groundY, seed, runtime)
-      else if (b.id === 'club') addClub(layers.buildings, x, groundY, seed, runtime)
-      else addTower(layers.buildings, x, groundY, seed, runtime)
+      if (!addBusinessSprite(layers.buildings, x, groundY, seed, runtime, b.id)) {
+        if (b.id === 'stall') addStall(layers.buildings, x, groundY, seed, runtime)
+        else if (b.id === 'laundry') addLaundry(layers.buildings, x, groundY, seed, runtime)
+        else if (b.id === 'club') addClub(layers.buildings, x, groundY, seed, runtime)
+        else addTower(layers.buildings, x, groundY, seed, runtime)
+      }
       const lastB = runtime.buildings[runtime.buildings.length - 1]
       if (lastB?.root) {
         lastB.root.alpha = 0.88 + boost * 0.12
@@ -1137,15 +1260,35 @@ export function rebuildEmpireScene(
   const patrolSlots = Math.min(2, 1 + (gt >= 3 ? 1 : 0))
   for (let i = 0; i < nCars; i++) {
     const seed = hash(i * 919 + snapshot.powerTier * 41)
-    const car = new Graphics()
+    const car = new Container()
     const cw = 28 + (seed % 14)
     const patrol = i < patrolSlots
     let lightL: Graphics | undefined
     let lightR: Graphics | undefined
-    if (patrol) {
-      car.roundRect(-cw / 2, -7, cw, 14, 3).fill({ color: 0x0f2744, alpha: 0.98 })
-      car.rect(-cw / 2 + 2, -9, cw - 4, 3).fill({ color: 0xf8fafc, alpha: 0.55 })
-      car.rect(-cw / 2 + 3, -5, cw - 6, 5).fill({ color: 0x1e3a5f, alpha: 0.35 })
+    const dir = seed % 6 === 0 ? -1 : 1
+    const carTex = sceneTex(patrol ? 'car_patrol' : 'car_street')
+    if (carTex) {
+      // Painted sprite; art faces left — cars driving right flip.
+      const spr = new Sprite(carTex)
+      spr.anchor.set(0.5, 0.75)
+      const sw = 44 + (seed % 16)
+      const s = sw / carTex.width
+      spr.scale.set(dir < 0 ? s : -s, s)
+      car.addChild(spr)
+      if (patrol) {
+        lightL = new Graphics()
+        lightL.rect(-6, -18, 4, 3).fill({ color: C.strobeBlue, alpha: 0.9 })
+        lightR = new Graphics()
+        lightR.rect(2, -18, 4, 3).fill({ color: C.strobeRed, alpha: 0.9 })
+        car.addChild(lightL)
+        car.addChild(lightR)
+      }
+    } else if (patrol) {
+      const g = new Graphics()
+      g.roundRect(-cw / 2, -7, cw, 14, 3).fill({ color: 0x0f2744, alpha: 0.98 })
+      g.rect(-cw / 2 + 2, -9, cw - 4, 3).fill({ color: 0xf8fafc, alpha: 0.55 })
+      g.rect(-cw / 2 + 3, -5, cw - 6, 5).fill({ color: 0x1e3a5f, alpha: 0.35 })
+      car.addChild(g)
       lightL = new Graphics()
       lightL.rect(-cw / 2 + 4, 1, 5, 3).fill({ color: C.strobeBlue, alpha: 0.85 })
       lightR = new Graphics()
@@ -1153,12 +1296,13 @@ export function rebuildEmpireScene(
       car.addChild(lightL)
       car.addChild(lightR)
     } else {
-      car.roundRect(-cw / 2, -7, cw, 14, 3).fill({ color: 0x0c1220, alpha: 0.96 })
-      car.rect(-cw / 2 + 4, -9, cw - 8, 3).fill({ color: 0xfacc15, alpha: 0.42 })
-      car.rect(-cw / 2 + 2, 2, cw - 4, 2).fill({ color: 0xef4444, alpha: 0.35 })
+      const g = new Graphics()
+      g.roundRect(-cw / 2, -7, cw, 14, 3).fill({ color: 0x0c1220, alpha: 0.96 })
+      g.rect(-cw / 2 + 4, -9, cw - 8, 3).fill({ color: 0xfacc15, alpha: 0.42 })
+      g.rect(-cw / 2 + 2, 2, cw - 4, 2).fill({ color: 0xef4444, alpha: 0.35 })
+      car.addChild(g)
     }
     car.y = groundY + 12 + (seed % 22)
-    const dir = seed % 6 === 0 ? -1 : 1
     car.x = dir > 0 ? -40 - (seed % 30) : w + 40 + (seed % 30)
     layers.vehicles.addChild(car)
     runtime.vehicles.push({

@@ -10,6 +10,7 @@ import {
   rebuildEmpireScene,
   tickEmpire,
 } from './empireScene'
+import { loadSceneArt } from './sceneArt'
 
 type Props = {
   state: GameState
@@ -85,6 +86,14 @@ export function StreetBackground({ state, empireVisualKey }: Props) {
 
       mountEmpireLayers(app.stage, layers)
       appRef.current = app
+
+      // Painted scene art — preload, then force a rebuild so the first paint
+      // already uses sprites when the fetch wins the race.
+      void loadSceneArt().then(() => {
+        if (destroyed) return
+        lastKeyRef.current = ''
+        applySnapshot()
+      })
 
       // Perf: cap renderer to 30fps. The empire scene is a slow parallax
       // background — running it at the display refresh rate (60/120/144Hz)
