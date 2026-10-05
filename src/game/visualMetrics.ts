@@ -37,6 +37,8 @@ export type EmpireSnapshot = {
   roadSpreadStage: number
   /** Background richness after road cap (parallax / lights). */
   cityDepthTier: number
+  /** Business id under police raid — its scene building gets strobing patrol lights. */
+  raidedBusinessId: string | null
 }
 
 /** Compact sorted fingerprint — avoids JSON.stringify of sparse objects each tick. */
@@ -74,6 +76,7 @@ export function empireSnapshotFromState(state: GameState): EmpireSnapshot {
     visualPressureBucket: visualPressureBucketFromState(state),
     roadSpreadStage: Math.min(3, tc),
     cityDepthTier: Math.min(12, Math.max(0, tc - 3)),
+    raidedBusinessId: state.raidedBusinessId,
   }
 }
 
@@ -98,6 +101,7 @@ export function empireSnapshotKey(s: EmpireSnapshot, w: number, h: number): stri
     s.visualPressureBucket,
     s.roadSpreadStage,
     s.cityDepthTier,
+    s.raidedBusinessId ?? '',
     Math.round(w),
     Math.round(h),
   ].join('|')

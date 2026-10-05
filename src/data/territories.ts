@@ -15,14 +15,14 @@ export function countTerritoriesOwned(territoriesOwned: Record<string, boolean>)
 }
 
 /** Territory capture rewards — tuned below shop economy growth (long-form pacing). */
-const REWARD_RATIO = 0.17
+const REWARD_RATIO = 0.085
 
 function rw(power: number): number {
   return Math.max(1, Math.floor(power * REWARD_RATIO))
 }
 
 /** Exponential curve with a gentle mid/late ramp so costs stay meaningful vs crew scaling. */
-export const TERRITORY_POWER_BASE = 1100
+export const TERRITORY_POWER_BASE = 850
 export const TERRITORY_POWER_GROWTH = 1.832
 
 function territoryPowerRamp(index: number): number {
@@ -130,7 +130,7 @@ export const STATIC_TERRITORY_COUNT = STATIC_TERRITORIES.length
 
 export const INFINITE_TERRITORY_BASE_POWER = 6_600_000
 export const INFINITE_TERRITORY_POWER_MULT = 1.22
-export const INFINITE_TERRITORY_REWARD_RATIO = 0.2
+export const INFINITE_TERRITORY_REWARD_RATIO = 0.1
 
 const ORDERED_STATIC_IDS = STATIC_TERRITORIES.map((t) => t.id)
 

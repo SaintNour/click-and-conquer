@@ -14,6 +14,9 @@ import type {
   GameState,
 } from '../data/types'
 import {
+  CLICK_STREAK_BONUS_PER_CLICK,
+  CLICK_STREAK_CAP,
+  CLICK_STREAK_WINDOW_MS,
   DANGER_COOLDOWN_TICKS,
   DANGER_ROLL_CHANCE,
   EVENT_COOLDOWN_MAX,
@@ -125,7 +128,17 @@ import {
   beginGangWarArc,
 } from './gangArcEngine'
 import { MEET_GIRLFRIEND_LIFE_EVENT_ID } from '../data/lifeEvents'
-import { effectiveLifeMoneyCost, effectiveLifePowerCost } from './lifeChoiceCosts'
+import {
+  choiceMinStockpileNeeded,
+  effectiveLifeMoneyCost,
+  effectiveLifePowerCost,
+} from './lifeChoiceCosts'
+import {
+  applyBranchFlags,
+  effectiveChoiceMoneyDelta,
+  effectiveChoicePowerDelta,
+  resolveOutcomeBundleDeltas,
+} from './choiceConsequences'
 import { attachOutcomeBanner } from './outcomeMeta'
 import { tickPartnerGoal } from './partnerGoalEngine'
 
@@ -325,14 +338,21 @@ export function applyTick(state: GameState): GameState {
 }
 
 export function applyClick(state: GameState): GameState {
-  const gainM = clickMoneyAmount(state)
-  const gainP = clickPowerAmount(state)
+  const now = Date.now()
+  const streak = now <= state.clickStreakUntilMs ? state.clickStreak + 1 : 1
+  const streakMult =
+    1 + Math.min(streak, CLICK_STREAK_CAP) * CLICK_STREAK_BONUS_PER_CLICK
+  const gainM = clickMoneyAmount(state) * streakMult
+  const gainP = clickPowerAmount(state) * streakMult
   const patched = patchAchievementStatsOnClick(state)
   let next = addHeatFromClickGains(
     {
       ...patched,
       money: state.money + gainM,
       power: state.power + gainP,
+      clickStreak: streak,
+      clickStreakUntilMs: now + CLICK_STREAK_WINDOW_MS,
+      bestClickStreak: Math.max(state.bestClickStreak, streak),
     },
     gainM,
     gainP,
@@ -582,18 +602,19 @@ export function applyEventChoice(
 
   const cm = effectiveLifeMoneyCost(state, choice)
   const cp = effectiveLifePowerCost(state, choice)
-  const md0 = choice.moneyDelta
-  const minMoneyNeeded = cm + (md0 !== undefined && md0 < 0 ? -md0 : 0)
+  const md0 = effectiveChoiceMoneyDelta(state, choice)
+  const pd0 = effectiveChoicePowerDelta(state, choice)
+  const need = choiceMinStockpileNeeded(state, choice)
 
   if (choice.successChance !== undefined && choice.successOutcome && choice.failureOutcome) {
-    if (state.money < minMoneyNeeded || state.power < cp) return state
+    if (state.money < need.money || state.power < need.power) return state
 
     const eventDef = getStreetEventDef(eventId)
 
     let next: GameState = {
       ...base,
       money: Math.max(0, state.money - cm + (md0 ?? 0)),
-      power: state.power - cp,
+      power: Math.max(0, state.power - cp + (pd0 ?? 0)),
     }
     let rollChance = choice.successChance
     if (eventDef?.targetsHome) {
@@ -607,7 +628,7 @@ export function applyEventChoice(
         moneyDelta: (rawBundle.moneyDelta ?? 0) + Math.round(cm * choice.successMoneyMultOfStake),
       }
     }
-    let bundle = mergeRivalId(rawBundle, contextRivalId)
+    let bundle = resolveOutcomeBundleDeltas(state, mergeRivalId(rawBundle, contextRivalId))
     let homeDefenseTier: 'full' | 'partial' | 'breach' | null = null
 
     if (eventDef?.targetsHome) {
@@ -631,6 +652,8 @@ export function applyEventChoice(
     next = applyEconomicOutcome(next, bundle)
     next = applyLifeOutcomeFields(next, bundle)
     next = applyRivalOutcomeEffects(next, bundle)
+    next = applyBranchFlags(next, choice.lifeBranchFlagsSet, choice.lifeBranchFlagsClear)
+    next = applyBranchFlags(next, bundle.lifeBranchFlagsSet, bundle.lifeBranchFlagsClear)
     next = patchAchievementStatsEventResolved(next, eventId, choice.id)
     next = setNarratorFromKey(next, bundle.narratorId)
     const variant = eventOutcomeBannerVariant(success, bundle, {
@@ -659,14 +682,14 @@ export function applyEventChoice(
   }
 
   if (!choice.narratorId) return state
-  if (state.money < minMoneyNeeded || state.power < cp) return state
+  if (state.money < need.money || state.power < need.power) return state
 
   let next: GameState = {
     ...base,
     money: Math.max(0, state.money - cm + (md0 ?? 0)),
     power: state.power - cp,
   }
-  if (choice.powerDelta) next = { ...next, power: Math.max(0, next.power + choice.powerDelta) }
+  if (pd0) next = { ...next, power: Math.max(0, next.power + pd0) }
   if (choice.passiveBonusDelta) {
     next = {
       ...next,
@@ -674,12 +697,7 @@ export function applyEventChoice(
     }
   }
   next = applyLifeStatDeltasFromChoice(next, choice)
-  if (isLife && eventId === 'life_tier1_beggar' && choice.id === 'sorry') {
-    next = {
-      ...next,
-      lifeBranchFlags: { ...(next.lifeBranchFlags ?? {}), beggar_cold: true },
-    }
-  }
+  next = applyBranchFlags(next, choice.lifeBranchFlagsSet, choice.lifeBranchFlagsClear)
   next = applyRivalOutcomeEffects(next, {
     heatDelta: choice.heatDelta,
     rivalFactionId: choice.rivalFactionId ?? contextRivalId ?? undefined,

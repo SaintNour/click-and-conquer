@@ -8,14 +8,14 @@ export const RANDOM_EVENTS: RandomEventDef[] = [
     choices: [
       {
         id: 'pay',
-        label: 'Pay them off ($500)',
-        moneyDelta: -500,
+        label: 'Pay them off ({{reward}})',
+        scaledMoneyDelta: { fraction: -0.004, floor: 60, cap: 40_000 },
         narratorId: 'event_auditor_pay',
       },
       {
         id: 'bluff',
         label: 'Bluff with confidence',
-        powerDelta: -5,
+        scaledPowerDelta: { fraction: -0.012, floor: 3, cap: 350 },
         narratorId: 'event_auditor_bluff',
       },
       {
@@ -32,9 +32,10 @@ export const RANDOM_EVENTS: RandomEventDef[] = [
     choices: [
       {
         id: 'buy',
-        label: 'Buy the tip ($300)',
-        moneyDelta: -300,
-        powerDelta: 15,
+        label: 'Buy the tip ({{reward}}, {{preward}})',
+        scaledMoneyDelta: { fraction: -0.0025, floor: 40, cap: 22_000 },
+        scaledPowerDelta: { fraction: 0.015, floor: 6, cap: 600 },
+        lifeBranchFlagsSet: ['bought_whispers'],
         narratorId: 'event_tip_buy',
       },
       {
@@ -45,7 +46,7 @@ export const RANDOM_EVENTS: RandomEventDef[] = [
       {
         id: 'egg_whisper',
         label: 'Whisper a fake address — art, not advice',
-        powerDelta: -2,
+        scaledPowerDelta: { fraction: -0.004, floor: 2, cap: 200 },
         happinessDelta: 2,
         narratorId: 'event_tip_egg_whisper',
       },
@@ -58,14 +59,14 @@ export const RANDOM_EVENTS: RandomEventDef[] = [
     choices: [
       {
         id: 'umbrellas',
-        label: 'Sell umbrellas (net +$250 after costs)',
-        moneyDelta: 250,
+        label: 'Sell umbrellas ({{reward}} after costs)',
+        scaledMoneyDelta: { fraction: 0.0028, floor: 45, cap: 32_000 },
         narratorId: 'event_rain_umbrellas',
       },
       {
         id: 'sulk',
         label: 'Sulk professionally',
-        passiveBonusDelta: 0.02,
+        passiveBonusDelta: 0.008,
         narratorId: 'event_rain_sulk',
       },
     ],
@@ -77,9 +78,10 @@ export const RANDOM_EVENTS: RandomEventDef[] = [
     choices: [
       {
         id: 'yes',
-        label: 'Say yes (+money, -power)',
-        moneyDelta: 600,
-        powerDelta: -20,
+        label: 'Say yes ({{reward}}, {{preward}})',
+        scaledMoneyDelta: { fraction: 0.005, floor: 90, cap: 60_000 },
+        scaledPowerDelta: { fraction: -0.02, floor: 8, cap: 800 },
+        lifeBranchFlagsSet: ['public_face'],
         narratorId: 'event_influencer_yes',
       },
       {

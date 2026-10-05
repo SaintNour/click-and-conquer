@@ -12,7 +12,7 @@ export const INITIAL_MONEY = 0
 export const INITIAL_POWER = 0
 
 /** Global multiplier on recruit & business upgradeCost (applied in pricing.ts). Long-form pacing. */
-export const SHOP_COST_MULT = 3.12
+export const SHOP_COST_MULT = 4.35
 
 /**
  * Per successive Attack / Defend in the same gang war (same curve shape as recruit upgrades:
@@ -24,7 +24,7 @@ export const WAR_ACTION_ESCALATION_MULT = 1.16
 /** Max real-time seconds credited when returning after closing the tab. */
 export const OFFLINE_INCOME_SECONDS_CAP = 8 * 60 * 60
 /** Fraction of live passive rates applied offline (anti-inflation vs active play). */
-export const OFFLINE_INCOME_EFFICIENCY = 0.78
+export const OFFLINE_INCOME_EFFICIENCY = 0.5
 /** Show “while you were away” if at least this much money was credited. */
 export const OFFLINE_REPORT_MIN_MONEY = 40
 export const OFFLINE_REPORT_MIN_POWER = 4
@@ -42,35 +42,35 @@ export const LIFE_GRIEF_INCOME_POWER_MULT = 0.75
 
 // —— Street luck (golden-cookie style cash surges) ——
 export const STREET_LUCK_MIN_UNITS = 8
-export const STREET_LUCK_BASE_CHANCE = 0.00115
-export const STREET_LUCK_UNITS_SCALE = 95_000
-export const STREET_LUCK_BONUS_CHANCE_CAP = 0.00185
-export const STREET_LUCK_DURATION_MIN = 38
-export const STREET_LUCK_DURATION_RANGE = 58
+export const STREET_LUCK_BASE_CHANCE = 0.00045
+export const STREET_LUCK_UNITS_SCALE = 140_000
+export const STREET_LUCK_BONUS_CHANCE_CAP = 0.0009
+export const STREET_LUCK_DURATION_MIN = 26
+export const STREET_LUCK_DURATION_RANGE = 44
 
 // —— Auto-hustle (cursor-like; scales from crew depth) ——
-export const AUTO_HUSTLE_MIN_RECRUIT_LEVELS = 4
-export const AUTO_HUSTLE_PER_SQRT_CREW = 0.062
-export const AUTO_HUSTLE_CAP = 4.25
+export const AUTO_HUSTLE_MIN_RECRUIT_LEVELS = 6
+export const AUTO_HUSTLE_PER_SQRT_CREW = 0.045
+export const AUTO_HUSTLE_CAP = 1.8
 
 /** Multiplier on empire shop upgrade $ costs (applied in shopUpgradeEngine / purchase checks). */
-export const EMPIRE_UPGRADE_COST_MULT = 2.05
+export const EMPIRE_UPGRADE_COST_MULT = 2.75
 
 /** First solo prestige: minimum run time (~20h at 1 tick/s) plus empire traction. */
-export const PRESTIGE_SOLO_MIN_TICKS = 72_000
+export const PRESTIGE_SOLO_MIN_TICKS = 82_000
 /** Family prestige: slightly lower time gate (heir path), still long-form. */
-export const PRESTIGE_FAMILY_MIN_TICKS = 64_800
+export const PRESTIGE_FAMILY_MIN_TICKS = 73_000
 
 /**
  * Life events — longer gaps so they feel occasional, not constant.
  * Post-resolve adds `LIFE_EVENT_RESOLVE_BUFFER_*` on top (see `lifePostResolveDelaySeconds` in lifeEngine).
  */
-export const LIFE_EVENT_COOLDOWN_MIN_SEC = 52
-export const LIFE_EVENT_COOLDOWN_MAX_SEC = 140
+export const LIFE_EVENT_COOLDOWN_MIN_SEC = 130
+export const LIFE_EVENT_COOLDOWN_MAX_SEC = 300
 
 /** Extra seconds after resolving a life event before the timer starts again. */
-export const LIFE_EVENT_RESOLVE_BUFFER_MIN_SEC = 18
-export const LIFE_EVENT_RESOLVE_BUFFER_MAX_SEC = 42
+export const LIFE_EVENT_RESOLVE_BUFFER_MIN_SEC = 26
+export const LIFE_EVENT_RESOLVE_BUFFER_MAX_SEC = 60
 
 /** After resolving any life event, wait this many seconds before the life timer resumes. */
 export function nextLifeEventCooldownSeconds(): number {
@@ -80,8 +80,8 @@ export function nextLifeEventCooldownSeconds(): number {
 }
 
 /** If a minor life is already on screen and another minor would fire, defer the timer (no stacking). */
-export const LIFE_EVENT_MINOR_STACK_DEFER_MIN_SEC = 14
-export const LIFE_EVENT_MINOR_STACK_DEFER_MAX_SEC = 36
+export const LIFE_EVENT_MINOR_STACK_DEFER_MIN_SEC = 20
+export const LIFE_EVENT_MINOR_STACK_DEFER_MAX_SEC = 52
 
 export function lifeEventMinorStackDeferSeconds(): number {
   const a = LIFE_EVENT_MINOR_STACK_DEFER_MIN_SEC
@@ -117,6 +117,9 @@ export const HEAT_CAP = 100
 
 /** Passive heat bleed per tick (1 tick ≈ 1 s) while you are still “active” (recent manual hustle). */
 export const HEAT_DECAY_PER_TICK = 0.12
+
+/** Flat heat per manual Hustle click — click cadence is the primary heat driver. */
+export const HEAT_PER_MANUAL_CLICK = 0.9
 
 /**
  * After this many ticks without a manual hustle click, heat uses `HEAT_IDLE_FAST_DECAY_PER_TICK`

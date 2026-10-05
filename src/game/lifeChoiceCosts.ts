@@ -1,5 +1,6 @@
 import type { EventChoiceDef, GameState, LifeScaledMoneyCost } from '../data/types'
 import { passiveMoneyPerSecond, passivePowerPerSecond } from './compute'
+import { effectiveChoiceMoneyDelta, effectiveChoicePowerDelta } from './choiceConsequences'
 import { calculateDynamicMoneyCost, calculateDynamicPowerCost } from './economyScaling'
 
 function dynamicMoneyCap(state: GameState, sc: LifeScaledMoneyCost, fromWealth: number): number {
@@ -81,7 +82,36 @@ export function formatLifeMoneyAmount(n: number): string {
 }
 
 /**
- * Replace {{money}} / {{power}} with resolved amounts. Labels should avoid ASCII hyphen for copy tone.
+ * Total upfront stockpile a choice needs: cost + any negative resolved delta
+ * (scaled deltas resolve against current resources at pick time).
+ */
+export function choiceMinStockpileNeeded(
+  state: GameState,
+  c: EventChoiceDef,
+): { money: number; power: number } {
+  const cm = effectiveLifeMoneyCost(state, c)
+  const cp = effectiveLifePowerCost(state, c)
+  const md = effectiveChoiceMoneyDelta(state, c)
+  const pd = effectiveChoicePowerDelta(state, c)
+  return {
+    money: cm + (md !== undefined && md < 0 ? -md : 0),
+    power: cp + (pd !== undefined && pd < 0 ? -pd : 0),
+  }
+}
+
+function formatSignedMoneyAmount(n: number): string {
+  const abs = Math.abs(Math.floor(n)).toLocaleString()
+  return n < 0 ? `-$${abs}` : `+$${abs}`
+}
+
+function formatSignedPowerAmount(n: number): string {
+  const abs = Math.abs(Math.floor(n)).toLocaleString()
+  return n < 0 ? `-${abs}⚡` : `+${abs}⚡`
+}
+
+/**
+ * Replace {{money}} / {{power}} with resolved cost amounts, and {{reward}} / {{preward}}
+ * with resolved (possibly wealth-scaled) money / power deltas. Labels should avoid ASCII hyphen for copy tone.
  */
 export function lifeChoiceDisplayLabel(state: GameState, c: EventChoiceDef): string {
   const m = effectiveLifeMoneyCost(state, c)
@@ -92,6 +122,14 @@ export function lifeChoiceDisplayLabel(state: GameState, c: EventChoiceDef): str
   }
   if (label.includes('{{power}}')) {
     label = label.replace(/\{\{power\}\}/g, `${Math.max(0, Math.floor(p)).toLocaleString()}⚡`)
+  }
+  if (label.includes('{{reward}}')) {
+    const rd = effectiveChoiceMoneyDelta(state, c) ?? 0
+    label = label.replace(/\{\{reward\}\}/g, formatSignedMoneyAmount(rd))
+  }
+  if (label.includes('{{preward}}')) {
+    const rp = effectiveChoicePowerDelta(state, c) ?? 0
+    label = label.replace(/\{\{preward\}\}/g, formatSignedPowerAmount(rp))
   }
   return label
 }

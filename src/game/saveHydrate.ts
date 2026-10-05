@@ -83,6 +83,8 @@ export function hydrateFromParsedSave(parsed: unknown): GameState | null {
       heatCapGraceEndTick: p.heatCapGraceEndTick ?? 0,
       heatGracePeriodActive: p.heatGracePeriodActive ?? false,
       heatMaxDebuffKind: p.heatMaxDebuffKind ?? null,
+      raidedBusinessId: p.raidedBusinessId ?? null,
+      raidEndTick: p.raidEndTick ?? 0,
       heatCrackdownNonce: 0,
       heatWarningLatch: p.heatWarningLatch ?? base.heatWarningLatch,
       heatWarningSfxNonce: 0,

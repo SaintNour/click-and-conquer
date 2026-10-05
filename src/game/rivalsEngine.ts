@@ -6,6 +6,7 @@ import type {
   RivalState,
 } from '../data/rivalTypes'
 import { passiveMoneyPerSecond, totalPowerFromRecruits } from './compute'
+import { branchRivalPressureMultiplier } from './branchTraits'
 import { houseItemRivalLossMitigation } from './houseCustomizationEngine'
 import { lifeHeatGainMultiplier } from './lifeEngine'
 import { setNarratorFromKey } from './narrator'
@@ -14,6 +15,7 @@ import {
   HEAT_CAP_GRACE_TICKS,
   HEAT_DECAY_PER_TICK,
   HEAT_IDLE_FAST_DECAY_PER_TICK,
+  HEAT_PER_MANUAL_CLICK,
   HEAT_IDLE_GRACE_TICKS,
   HEAT_WARNING_LATCH_CLEAR,
   HEAT_WARNING_THRESHOLD,
@@ -70,10 +72,10 @@ export const RELATIONSHIP_POINTS_START = 100
 const HEAT_FROM_TERRITORY_CAPTURE = 4
 const HEAT_CAP_FROM_PASSIVE_PER_TICK = 0.16
 
-const RIVAL_CHECK_MIN = 20
-const RIVAL_CHECK_MAX = 44
-const RIVAL_COOLDOWN_AFTER_ENCOUNTER = 38
-const RIVAL_AMBIENT_COOLDOWN_TICKS = 55
+const RIVAL_CHECK_MIN = 58
+const RIVAL_CHECK_MAX = 120
+const RIVAL_COOLDOWN_AFTER_ENCOUNTER = 85
+const RIVAL_AMBIENT_COOLDOWN_TICKS = 115
 
 const RIVAL_INCOME_MULT_CAP = 1.12
 const RIVAL_INCOME_MULT_PER_REVENGE = 1.008
@@ -468,7 +470,11 @@ function heatFromPassiveTick(state: GameState): number {
   return raw * lifeHeatGainMultiplier(state)
 }
 
-/** Heat from a single manual Hustle resolution (not auto-hustle ticks). */
+/**
+ * Heat from a single manual Hustle resolution (not auto-hustle ticks).
+ * A flat base makes every click register — the bar visibly answers your
+ * click cadence — while the scaled part keeps big late-game payouts loud.
+ */
 export function addHeatFromClickGains(
   state: GameState,
   gainMoney: number,
@@ -477,7 +483,10 @@ export function addHeatFromClickGains(
   const hm = Math.min(0.85, gainMoney / 19_500)
   const hp = Math.min(0.62, gainPower / 55)
   const mult = lifeHeatGainMultiplier(state)
-  return { ...state, heat: Math.min(HEAT_CAP, state.heat + (hm + hp) * mult) }
+  return {
+    ...state,
+    heat: Math.min(HEAT_CAP, state.heat + (HEAT_PER_MANUAL_CLICK + hm + hp) * mult),
+  }
 }
 
 export function addHeatFromTerritoryCapture(state: GameState): GameState {
@@ -608,7 +617,8 @@ export function tickRivalsAndHeat(state: GameState): GameState {
       const r = next.rivals[skId]!
       const pts = r.relationshipPoints ?? RELATIONSHIP_POINTS_START
       const tension01 = Math.min(1, (relRank(r.relationship) * 24 + pts) / 115)
-      const rollP = 0.014 + next.heat * 0.00011 + tension01 * 0.026
+      const rollP =
+        (0.014 + next.heat * 0.00011 + tension01 * 0.026) * branchRivalPressureMultiplier(next)
       if (Math.random() < rollP) {
         const enc = buildEncounter(next, skId, 'attack')
         if (enc) {

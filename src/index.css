@@ -7,27 +7,27 @@ html {
 }
 
 :root {
-  --text: #a8adb8;
-  --text-h: #fafafa;
-  --bg: #050508;
-  --bg-elevated: #0c0c12;
-  --border: rgba(168, 85, 247, 0.22);
-  --code-bg: #121218;
-  --panel: rgba(18, 16, 28, 0.72);
-  --accent: #c084fc;
-  --accent-bg: rgba(168, 85, 247, 0.12);
-  --accent-border: rgba(192, 132, 252, 0.45);
-  --money: #4ade80;
-  --money-dim: rgba(74, 222, 128, 0.85);
-  --money-bg: rgba(22, 101, 52, 0.25);
-  --power: #a78bfa;
-  --power-glow: rgba(139, 92, 246, 0.35);
+  --text: #c9b896;
+  --text-h: #f6ead2;
+  --bg: #0d0906;
+  --bg-elevated: #17100a;
+  --border: rgba(201, 154, 60, 0.22);
+  --code-bg: #1a120b;
+  --panel: rgba(24, 16, 10, 0.78);
+  --accent: #e8c478;
+  --accent-bg: rgba(201, 154, 60, 0.12);
+  --accent-border: rgba(232, 196, 120, 0.45);
+  --money: #a8c97a;
+  --money-dim: rgba(168, 201, 122, 0.85);
+  --money-bg: rgba(72, 96, 44, 0.25);
+  --power: #e0be78;
+  --power-glow: rgba(176, 112, 48, 0.35);
   --gold: #d4a017;
-  --danger: #f87171;
+  --danger: #d9573f;
   --shadow: 0 24px 48px -12px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.04) inset;
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: 'Segoe UI', system-ui, Roboto, sans-serif;
+  --sans: Georgia, 'Iowan Old Style', 'Palatino Linotype', 'Book Antiqua', serif;
+  --heading: 'Playfair Display', 'Didot', 'Bodoni MT', Georgia, serif;
   --mono: ui-monospace, Consolas, 'Cascadia Mono', monospace;
 
   font: 16px/145% var(--sans);
@@ -70,11 +70,14 @@ body {
   -webkit-user-select: none;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
+  /* Double-tap anywhere must not zoom — game UI, not a document. */
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
   background:
-    radial-gradient(ellipse 120% 85% at 50% -18%, rgba(109, 40, 217, 0.42), transparent 52%),
-    radial-gradient(ellipse 75% 55% at 95% 35%, rgba(55, 48, 163, 0.35), transparent 48%),
-    radial-gradient(ellipse 55% 45% at 5% 75%, rgba(21, 128, 61, 0.14), transparent 42%),
-    linear-gradient(180deg, #020204 0%, #0c0718 38%, #030305 100%);
+    radial-gradient(ellipse 120% 85% at 50% -18%, rgba(112, 84, 42, 0.42), transparent 52%),
+    radial-gradient(ellipse 75% 55% at 95% 35%, rgba(87, 66, 33, 0.35), transparent 48%),
+    radial-gradient(ellipse 55% 45% at 5% 75%, rgba(76, 93, 55, 0.14), transparent 42%),
+    linear-gradient(180deg, #020204 0%, #0d0a08 38%, #030305 100%);
 }
 
 h1,

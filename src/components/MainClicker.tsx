@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { TOOLTIPS } from '../data/tooltips'
 import type { EventChoiceDef, GameState } from '../data/types'
 import { getEmbeddedNarrativeEventDef, isGameplayModalBlocking } from '../game/lifeEventFlow'
@@ -5,10 +6,13 @@ import {
   autoHustleClicksPerSecond,
   clickMoneyAmount,
   clickPowerAmount,
+  clickStreakActive,
+  clickStreakMultiplier,
   passiveMoneyPerSecond,
   passivePowerPerSecond,
   streetLuckMoneyMultiplier,
 } from '../game/compute'
+import { CLICK_STREAK_WINDOW_MS } from '../game/constants'
 import { totalEmpireScaleMultiplier } from '../game/empireMultiplierSources'
 import { GameTooltip } from './GameTooltip'
 import { HustleButton } from './HustleButton'
@@ -26,8 +30,18 @@ export function MainClicker({ state, onClick, embeddedEventId, onResolveEmbedded
   const mps = passiveMoneyPerSecond(state)
   const pps = passivePowerPerSecond(state)
 
-  const moneyGain = clickMoneyAmount(state)
-  const powerGain = clickPowerAmount(state)
+  const [nowMs, setNowMs] = useState(() => Date.now())
+  useEffect(() => {
+    const id = window.setInterval(() => setNowMs(Date.now()), 250)
+    return () => window.clearInterval(id)
+  }, [])
+  const streakLive = clickStreakActive(state, nowMs)
+  const streakMult = streakLive ? clickStreakMultiplier(state, nowMs) : 1
+  const streakFrac = streakLive
+    ? Math.max(0, Math.min(1, (state.clickStreakUntilMs - nowMs) / CLICK_STREAK_WINDOW_MS))
+    : 0
+  const moneyGain = clickMoneyAmount(state) * streakMult
+  const powerGain = clickPowerAmount(state) * streakMult
   const autoHustle = autoHustleClicksPerSecond(state)
   const luckMult = streetLuckMoneyMultiplier(state)
   const luckSecs =
@@ -100,10 +114,26 @@ export function MainClicker({ state, onClick, embeddedEventId, onResolveEmbedded
           powerGain={powerGain}
           disabled={isGameplayModalBlocking(state)}
         />
+        {streakLive ? (
+          <div
+            className={`hustle-streak${state.clickStreak >= 25 ? ' hustle-streak--max' : ''}`}
+            role="status"
+            aria-live="polite"
+          >
+            <span className="hustle-streak__label">
+              Streak ×{state.clickStreak}
+              <em className="hustle-streak__mult">+{Math.round((streakMult - 1) * 100)}%</em>
+            </span>
+            <span className="hustle-streak__track" aria-hidden>
+              <span className="hustle-streak__fill" style={{ width: `${streakFrac * 100}%` }} />
+            </span>
+          </div>
+        ) : null}
       </div>
       {embeddedId && onResolveEmbeddedEvent ? (
         <div className="main-clicker__life-slot">
           <MinorLifeEventCard
+            key={embeddedId}
             eventId={embeddedId}
             state={state}
             onResolve={onResolveEmbeddedEvent}

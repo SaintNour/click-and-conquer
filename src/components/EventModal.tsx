@@ -19,11 +19,7 @@ import {
 } from '../game/lifeEventFlow'
 import { GANG_DEMAND_EVENT_ID } from '../game/gangArcEngine'
 import { gangStrikeFirstPowerCost } from '../game/rivalsEngine'
-import {
-  effectiveLifeMoneyCost,
-  effectiveLifePowerCost,
-  lifeChoiceDisplayLabel,
-} from '../game/lifeChoiceCosts'
+import { choiceMinStockpileNeeded, lifeChoiceDisplayLabel } from '../game/lifeChoiceCosts'
 import { interpolateRivalText } from '../game/rivalEngine'
 
 const ALL_EVENTS = [...RANDOM_EVENTS, ...LIFE_EVENTS, ...STORY_EVENTS, ...RIVAL_EVENTS]
@@ -35,11 +31,8 @@ type Props = {
 }
 
 function choiceDisabled(state: GameState, c: EventChoiceDef, eventId: string): boolean {
-  const cm = effectiveLifeMoneyCost(state, c)
-  const cp = effectiveLifePowerCost(state, c)
-  const md = c.moneyDelta
-  const minNeed = cm + (md !== undefined && md < 0 ? -md : 0)
-  if (state.money < minNeed || state.power < cp) return true
+  const need = choiceMinStockpileNeeded(state, c)
+  if (state.money < need.money || state.power < need.power) return true
   if (eventId === GANG_DEMAND_EVENT_ID && c.id === 'cede_turf') {
     if (!Object.values(state.territoriesOwned).some(Boolean)) return true
   }
@@ -112,19 +105,19 @@ export function EventModal({ eventId, state, onResolve }: Props) {
             ? {
                 ...c,
                 costPower: strikeFirstCost,
+                // Clear the def's scaled cost so the dynamic override wins (else
+                // effectiveLifePowerCost prefers scaledPowerCost and displayed ≠ charged).
+                scaledPowerCost: undefined,
                 label: `Strike first (${strikeFirstCost.toLocaleString()}⚡)`,
               }
             : c,
         )
       : displayedChoicesRaw
 
-  const isBlockingLifeCard = Boolean(
-    eventId && getLifeEventDefById(eventId) && isBlockingLifeEventId(eventId),
-  )
-
-  const displayedChoices: EventChoiceDef[] = isBlockingLifeCard
-    ? withStrike.map((c) => ({ ...c, label: lifeChoiceDisplayLabel(state, c) }))
-    : withStrike
+  const displayedChoices: EventChoiceDef[] = withStrike.map((c) => ({
+    ...c,
+    label: lifeChoiceDisplayLabel(state, c),
+  }))
 
   const rivalId = state.pendingRivalEventContext?.rivalId
   const rivalName =

@@ -15,8 +15,8 @@ export const RIVAL_HOME_EVENTS: RandomEventDef[] = [
     choices: [
       {
         id: 'harden',
-        label: 'Harden the building (24 power)',
-        costPower: 24,
+        label: 'Harden the building ({{power}})',
+        scaledPowerCost: { fractionOfPower: 0.02, floor: 12, cap: 600 },
         successChance: 0.56,
         successOutcome: {
           narratorId: 'rival_home_van_ok',
@@ -26,22 +26,22 @@ export const RIVAL_HOME_EVENTS: RandomEventDef[] = [
           heatDelta: -2,
           rivalPowerDelta: -6,
           rivalRelationshipDelta: 1,
-          moneyDelta: 90,
+          scaledMoneyDelta: { fraction: 0.002, floor: 40, cap: 25_000 },
         },
         failureOutcome: {
           narratorId: 'rival_home_van_fail',
           resultTitle: 'They saw you scramble',
           resultDetail:
             'You moved fast—too fast. They clocked the panic and billed you for the theater.',
-          moneyDelta: -320,
+          scaledMoneyDelta: { fraction: -0.0032, floor: 65, cap: 30_000 },
           heatDelta: 5,
           rivalRelationshipDelta: 1,
         },
       },
       {
         id: 'watch',
-        label: 'Watch and log plates ($240)',
-        costMoney: 240,
+        label: 'Watch and log plates ({{money}})',
+        scaledMoneyCost: { fractionOfWealth: 0.0019, floor: 45, cap: 18_000 },
         successChance: 0.62,
         successOutcome: {
           narratorId: 'rival_home_van_intel_ok',
@@ -49,8 +49,9 @@ export const RIVAL_HOME_EVENTS: RandomEventDef[] = [
           resultDetail:
             'Not poetry—data. You now know which shell company rents bad taste on wheels.',
           heatDelta: -1,
-          moneyDelta: 140,
+          scaledMoneyDelta: { fraction: 0.0035, floor: 70, cap: 60_000 },
           rivalPowerDelta: -4,
+          lifeBranchFlagsSet: ['hired_eyes'],
           rivalRelationshipDelta: 1,
         },
         failureOutcome: {
@@ -58,7 +59,7 @@ export const RIVAL_HOME_EVENTS: RandomEventDef[] = [
           resultTitle: 'Garbage intel',
           resultDetail:
             'You paid for a story. The story was “van exists.” Congratulations—you sponsored obvious.',
-          moneyDelta: -180,
+          scaledMoneyDelta: { fraction: -0.0018, floor: 35, cap: 16_000 },
           heatDelta: 3,
           rivalRelationshipDelta: 1,
         },
@@ -72,6 +73,7 @@ export const RIVAL_HOME_EVENTS: RandomEventDef[] = [
           'You looked away. The van did not. Your building learned a new synonym: target.',
         heatDelta: 4,
         rivalRelationshipDelta: 1,
+        lifeBranchFlagsSet: ['ignored_rumor'],
       },
     ],
   },
@@ -88,8 +90,8 @@ export const RIVAL_HOME_EVENTS: RandomEventDef[] = [
     choices: [
       {
         id: 'intercept',
-        label: 'Intercept with crew (28 power)',
-        costPower: 28,
+        label: 'Intercept with crew ({{power}})',
+        scaledPowerCost: { fractionOfPower: 0.024, floor: 14, cap: 700 },
         successChance: 0.5,
         successOutcome: {
           narratorId: 'rival_home_breakin_ok',
@@ -99,23 +101,25 @@ export const RIVAL_HOME_EVENTS: RandomEventDef[] = [
           heatDelta: -2,
           rivalPowerDelta: -12,
           rivalRelationshipDelta: 1,
-          moneyDelta: 220,
+          scaledMoneyDelta: { fraction: 0.0045, floor: 90, cap: 70_000 },
+          lifeBranchFlagsSet: ['feared_rep'],
         },
         failureOutcome: {
           narratorId: 'rival_home_breakin_fail',
           resultTitle: 'They got inside the story',
           resultDetail:
             'A window cracked. So did your calm. Something walked out that should not have.',
-          moneyDelta: -640,
-          powerDelta: -18,
+          scaledMoneyDelta: { fraction: -0.0055, floor: 130, cap: 60_000 },
+          scaledPowerDelta: { fraction: -0.018, floor: 9, cap: 650 },
           heatDelta: 8,
+          lifeBranchFlagsSet: ['defied_gang'],
           rivalRelationshipDelta: 1,
         },
       },
       {
         id: 'barricade',
-        label: 'Barricade & call favors ($520)',
-        costMoney: 520,
+        label: 'Barricade & call favors ({{money}})',
+        scaledMoneyCost: { fractionOfWealth: 0.0042, floor: 110, cap: 42_000 },
         successChance: 0.58,
         successOutcome: {
           narratorId: 'rival_home_breakin_bar_ok',
@@ -130,7 +134,7 @@ export const RIVAL_HOME_EVENTS: RandomEventDef[] = [
           narratorId: 'rival_home_breakin_bar_fail',
           resultTitle: 'Slow barricade tax',
           resultDetail: 'You paid for speed. Speed arrived late, with receipts.',
-          moneyDelta: -420,
+          scaledMoneyDelta: { fraction: -0.004, floor: 85, cap: 38_000 },
           heatDelta: 6,
           rivalRelationshipDelta: 1,
         },
@@ -150,8 +154,8 @@ export const RIVAL_HOME_EVENTS: RandomEventDef[] = [
     choices: [
       {
         id: 'counter',
-        label: 'Counter-surveillance ($380)',
-        costMoney: 380,
+        label: 'Counter-surveillance ({{money}})',
+        scaledMoneyCost: { fractionOfWealth: 0.003, floor: 80, cap: 30_000 },
         successChance: 0.6,
         successOutcome: {
           narratorId: 'rival_home_watch_ok',
@@ -159,24 +163,26 @@ export const RIVAL_HOME_EVENTS: RandomEventDef[] = [
           resultDetail:
             'You turned watchers into watched. Paranoia loves company—you brought a crowd.',
           heatDelta: -2,
-          moneyDelta: 160,
+          scaledMoneyDelta: { fraction: 0.004, floor: 80, cap: 65_000 },
           rivalPowerDelta: -5,
+          lifeBranchFlagsSet: ['hired_eyes'],
           rivalRelationshipDelta: 1,
         },
         failureOutcome: {
           narratorId: 'rival_home_watch_fail',
           resultTitle: 'You blinked first',
           resultDetail: 'They ghosted your tail and left a bill where your pride used to be.',
-          moneyDelta: -260,
+          scaledMoneyDelta: { fraction: -0.0026, floor: 55, cap: 24_000 },
           heatDelta: 4,
           rivalRelationshipDelta: 1,
         },
       },
       {
         id: 'show',
-        label: 'Show presence (14 power)',
-        costPower: 14,
+        label: 'Show presence ({{power}})',
+        scaledPowerCost: { fractionOfPower: 0.012, floor: 6, cap: 350 },
         narratorId: 'rival_home_watch_show',
+        lifeBranchFlagsSet: ['feared_rep'],
         resultTitle: 'Posture tax',
         resultDetail:
           'You stepped outside like you owned the sidewalk. Heat noticed. So did your neighbor’s camera.',
@@ -198,8 +204,8 @@ export const RIVAL_HOME_EVENTS: RandomEventDef[] = [
     choices: [
       {
         id: 'sweep',
-        label: 'Authorize a sweep (20 power)',
-        costPower: 20,
+        label: 'Authorize a sweep ({{power}})',
+        scaledPowerCost: { fractionOfPower: 0.017, floor: 9, cap: 520 },
         successChance: 0.57,
         successOutcome: {
           narratorId: 'rival_home_guard_ok',
@@ -207,7 +213,7 @@ export const RIVAL_HOME_EVENTS: RandomEventDef[] = [
           resultDetail:
             'Nothing cute—just corridors cleared and a story that ends with “not today.”',
           heatDelta: -2,
-          moneyDelta: 200,
+          scaledMoneyDelta: { fraction: 0.0042, floor: 85, cap: 68_000 },
           rivalPowerDelta: -7,
           rivalRelationshipDelta: 1,
         },
@@ -216,7 +222,7 @@ export const RIVAL_HOME_EVENTS: RandomEventDef[] = [
           resultTitle: 'Chaos in the stairwell',
           resultDetail:
             'The sweep bumped into someone else’s movie. Everyone got a scene. You got a bill.',
-          moneyDelta: -300,
+          scaledMoneyDelta: { fraction: -0.003, floor: 60, cap: 28_000 },
           heatDelta: 5,
           rivalRelationshipDelta: 1,
         },
@@ -246,8 +252,8 @@ export const RIVAL_HOME_EVENTS: RandomEventDef[] = [
     choices: [
       {
         id: 'burn',
-        label: 'Burn the message, tighten security (22 power)',
-        costPower: 22,
+        label: 'Burn the message, tighten security ({{power}})',
+        scaledPowerCost: { fractionOfPower: 0.018, floor: 10, cap: 560 },
         successChance: 0.54,
         successOutcome: {
           narratorId: 'rival_home_dm_ok',
@@ -262,22 +268,22 @@ export const RIVAL_HOME_EVENTS: RandomEventDef[] = [
           narratorId: 'rival_home_dm_fail',
           resultTitle: 'They wanted a reaction',
           resultDetail: 'You flinched loud enough to echo. They saved the clip for later.',
-          moneyDelta: -380,
+          scaledMoneyDelta: { fraction: -0.0038, floor: 75, cap: 35_000 },
           heatDelta: 7,
           rivalRelationshipDelta: 1,
         },
       },
       {
         id: 'frame',
-        label: 'Frame it as leverage ($400)',
-        costMoney: 400,
+        label: 'Frame it as leverage ({{money}})',
+        scaledMoneyCost: { fractionOfWealth: 0.0032, floor: 85, cap: 32_000 },
         successChance: 0.52,
         successOutcome: {
           narratorId: 'rival_home_dm_frame_ok',
           resultTitle: 'Reframed threat',
           resultDetail: 'You turned menace into marketing. Not healthy—just effective.',
           heatDelta: -1,
-          moneyDelta: 110,
+          scaledMoneyDelta: { fraction: 0.003, floor: 55, cap: 45_000 },
           rivalPowerDelta: -6,
           rivalRelationshipDelta: 1,
         },
@@ -285,7 +291,7 @@ export const RIVAL_HOME_EVENTS: RandomEventDef[] = [
           narratorId: 'rival_home_dm_frame_fail',
           resultTitle: 'Wrong caption',
           resultDetail: 'You tried clever. They tried cruel. Guess which scales faster.',
-          moneyDelta: -340,
+          scaledMoneyDelta: { fraction: -0.0034, floor: 68, cap: 32_000 },
           heatDelta: 6,
           rivalRelationshipDelta: 1,
         },

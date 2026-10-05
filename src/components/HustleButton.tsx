@@ -49,6 +49,7 @@ export function HustleButton({ onAction, moneyGain, powerGain, disabled = false 
         onClick={handleClick}
       >
         <span ref={rippleHostRef} className="hustle-btn__ripples" aria-hidden />
+        <img src="/shop/hustle.png" alt="" className="hustle-btn__emblem" aria-hidden />
         <span className="hustle-btn__label">Hustle</span>
       </button>
     </div>

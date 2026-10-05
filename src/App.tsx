@@ -35,9 +35,9 @@ import { empireVisualRebuildKey } from './game/visualMetrics'
 import { useGame } from './game/useGame'
 import './App.css'
 
-const StreetBackground = lazy(async () => {
-  const m = await import('./effects/pixi/StreetBackground')
-  return { default: m.StreetBackground }
+const CityBackground = lazy(async () => {
+  const m = await import('./effects/babylon/CityBackground')
+  return { default: m.CityBackground }
 })
 
 function App() {
@@ -151,7 +151,7 @@ function App() {
       <div className="app-layout__game">
         <div className={`app app--stack app--theme-${state.characterTheme}`}>
           <Suspense fallback={null}>
-            <StreetBackground state={state} empireVisualKey={empireVisualRebuildKey(state)} />
+            <CityBackground state={state} empireVisualKey={empireVisualRebuildKey(state)} />
           </Suspense>
           <div ref={dangerOverlayRef} className="danger-feedback-overlay" aria-hidden />
           <div ref={rivalFlashRef} className="rival-flash-overlay" aria-hidden />

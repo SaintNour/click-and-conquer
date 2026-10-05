@@ -2,7 +2,7 @@
 export const TOOLTIPS = {
   money: 'Cash on hand. Spend it on crews, fronts, life, and heat control.',
   power: 'Street muscle and leverage. Needed to take turf and stare down rivals.',
-  heat: 'Attention from your hustle and the street. Only manual Hustle clicks add hustle heat; auto-hustle pays out without spiking the bar. At 100% heat you take an income and crew-power hit for the crackdown countdown; when it resolves you take a cash/power hit and stay debuffed for 60 more seconds. When heat is high enough, you can Launder heat in the left column: spend cash on a long cooldown to shave the bar down.',
+  heat: 'Attention from your hustle and the street. Every manual Hustle click pushes the bar — click fast and it climbs fast; stop clicking and it bleeds off. Auto-hustle pays out without spiking it. At 100% the crackdown countdown starts: income and crew power are squeezed until it resolves, then you take a cash/power hit and a 60s debuff — police can raid one of your businesses and seize its income while you cool off. When heat is high enough, you can Launder heat in the left column: spend cash on a long cooldown to shave the bar down.',
   passiveScale:
     'Empire rhythm multiplier: grows from turf, crews, businesses, upgrades, HQ, and life meta — not from spamming Hustle. Events and heat can still shift it.',
   autoHustle:

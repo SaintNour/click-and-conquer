@@ -5,6 +5,7 @@ import {
   houseItemPowerMult,
 } from './houseCustomizationEngine'
 import type { EventChoiceDef, GameState } from '../data/types'
+import { branchHeatGainMultiplier } from './branchTraits'
 import { EVENT_COOLDOWN_MAX, EVENT_COOLDOWN_MIN } from './constants'
 import {
   DATE_COST,
@@ -148,11 +149,11 @@ export function lifeSecurityLevel(state: GameState): number {
   return houseTierAtLevel(state.houseLevel).security
 }
 
-/** <1 reduces heat gain (house security + HQ décor). */
+/** <1 reduces heat gain (house security + HQ décor + street rep traits). */
 export function lifeHeatGainMultiplier(state: GameState): number {
   const sec = lifeSecurityLevel(state)
   const base = Math.max(0.58, 1 - sec / 210)
-  return base * houseItemHeatMitigation(state)
+  return base * houseItemHeatMitigation(state) * branchHeatGainMultiplier(state)
 }
 
 /** While grieving a break-up, income & power from life layer are reduced. */

@@ -5,6 +5,7 @@ import { BUSINESSES } from '../data/businesses'
 import { RECRUITS } from '../data/recruits'
 import type { GameState } from '../data/types'
 import { businessUnlockRequirementLabel, isBusinessUnlocked } from '../game/businessUnlocks'
+import { isBusinessRaided } from '../game/heatCrackdownEngine'
 import { maxAffordableBulk, upgradeCost, upgradeCostBulk } from '../game/pricing'
 import {
   businessLockHint,
@@ -212,6 +213,7 @@ export function UpgradePanel({
               level={lv}
               priceLineLabel={`$${upgradeCost(b, lv).toLocaleString()}`}
               hintTitle={hint ?? reqLabel ?? undefined}
+              raided={isBusinessRaided(state, b.id)}
               lockMessages={
                 <>
                   {!open && hint ? <div className="shop-card-row__lock-msg">{hint}</div> : null}

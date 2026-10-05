@@ -7,6 +7,7 @@ import {
   AUTO_HUSTLE_MIN_RECRUIT_LEVELS,
   AUTO_HUSTLE_PER_SQRT_CREW,
 } from './balanceConfig'
+import { CLICK_STREAK_BONUS_PER_CLICK, CLICK_STREAK_CAP } from './constants'
 import { passiveEconomyDragMultiplier } from './economyScaling'
 import { PASSIVE_SCALE_CAP } from './constants'
 import { getAchievementBonusMultipliers } from './achievementsEngine'
@@ -32,6 +33,7 @@ import {
   recruitPowerMultiplier,
 } from './shopUpgradeEngine'
 import { totalEmpireScaleMultiplier } from './empireMultiplierSources'
+import { branchMoneyMultiplier, branchPowerMultiplier } from './branchTraits'
 import { sumRecruitLevels } from './progressionMomentum'
 
 const RIVAL_INCOME_MULT_CAP = 1.12
@@ -95,12 +97,14 @@ export function passivePowerPerSecond(state: GameState): number {
     territoryEmpireSynergyPowerMult(state) *
     heatCrackdownPowerGainMultiplier(state) *
     heatRecruitPowerEfficiency(state.heat) *
+    branchPowerMultiplier(state) *
     passiveEconomyDragMultiplier(state)
   )
 }
 
 export function passiveMoneyPerSecond(state: GameState): number {
   const base = BUSINESSES.reduce((sum, b) => {
+    if (state.raidedBusinessId === b.id && state.raidEndTick > state.tickCount) return sum
     const lv = state.businessLevels[b.id] ?? 0
     const m = businessMoneyMultiplier(state, b.id)
     return sum + lv * b.moneyPerSecond * m
@@ -122,6 +126,7 @@ export function passiveMoneyPerSecond(state: GameState): number {
     heatIncomeBonusMultiplier(state.heat) *
     territoryEmpireSynergyMoneyMult(state) *
     streetLuckMoneyMultiplier(state) *
+    branchMoneyMultiplier(state) *
     passiveEconomyDragMultiplier(state)
   )
 }
@@ -146,7 +151,8 @@ export function clickMoneyAmount(state: GameState): number {
     heatCrackdownIncomeMultiplier(state) *
     heatIncomeBonusMultiplier(state.heat) *
     territoryEmpireSynergyMoneyMult(state) *
-    streetLuckMoneyMultiplier(state)
+    streetLuckMoneyMultiplier(state) *
+    branchMoneyMultiplier(state)
   )
 }
 
@@ -166,8 +172,23 @@ export function clickPowerAmount(state: GameState): number {
     earlySessionClickPowerMult(state) *
     territoryEmpireSynergyPowerMult(state) *
     heatCrackdownPowerGainMultiplier(state) *
-    heatRecruitPowerEfficiency(state.heat)
+    heatRecruitPowerEfficiency(state.heat) *
+    branchPowerMultiplier(state)
   )
+}
+
+/**
+ * Hustle streak: rapid manual clicking ramps click gains up to +50% (Cookie-style
+ * rhythm bonus). `nowMs` is wall-clock; a cold streak returns 1.
+ */
+export function clickStreakMultiplier(state: GameState, nowMs: number): number {
+  if (state.clickStreak <= 1 || nowMs > state.clickStreakUntilMs) return 1
+  return 1 + Math.min(state.clickStreak, CLICK_STREAK_CAP) * CLICK_STREAK_BONUS_PER_CLICK
+}
+
+/** Whether the streak is currently live (for UI badge). */
+export function clickStreakActive(state: GameState, nowMs: number): boolean {
+  return state.clickStreak > 1 && nowMs <= state.clickStreakUntilMs
 }
 
 export function territoriesOwnedCount(state: GameState): number {
